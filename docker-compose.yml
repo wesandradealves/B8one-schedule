@@ -1,27 +1,35 @@
-name: b8one
+name: ${COMPOSE_PROJECT_NAME}
 
 services:
   backend:
     build:
       context: .
       dockerfile: Dockerfile
-    env_file:
-      - api/.env
     command: sh -c "npm run migration:run:prod && npm run seed:prod && npm run start:prod"
     ports:
-      - '3000:3000'
+      - '${BACKEND_HTTP_PORT}:3000'
     environment:
-      NODE_ENV: development
-      HTTP_PORT: 3000
-      DATABASE_HOST: postgres
-      DATABASE_PORT: 5432
-      DATABASE_USERNAME: postgres
-      DATABASE_PASSWORD: postgres
-      DATABASE_NAME: b8one
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_TTL_SECONDS: 300
-      TWO_FA_CODE_EXPIRATION_MINUTES: 10
+      NODE_ENV: ${BACKEND_NODE_ENV}
+      HTTP_PORT: ${BACKEND_HTTP_PORT}
+      DATABASE_HOST: ${BACKEND_DATABASE_HOST}
+      DATABASE_PORT: ${BACKEND_DATABASE_PORT}
+      DATABASE_USERNAME: ${BACKEND_DATABASE_USERNAME}
+      DATABASE_PASSWORD: ${BACKEND_DATABASE_PASSWORD}
+      DATABASE_NAME: ${BACKEND_DATABASE_NAME}
+      DATABASE_SSL: ${BACKEND_DATABASE_SSL}
+      REDIS_HOST: ${BACKEND_REDIS_HOST}
+      REDIS_PORT: ${BACKEND_REDIS_PORT}
+      REDIS_PASSWORD: ${BACKEND_REDIS_PASSWORD}
+      REDIS_TTL_SECONDS: ${BACKEND_REDIS_TTL_SECONDS}
+      API_PREFIX: ${BACKEND_API_PREFIX}
+      JWT_ACCESS_TOKEN_SECRET: ${BACKEND_JWT_ACCESS_TOKEN_SECRET}
+      JWT_ACCESS_TOKEN_EXPIRES_SECONDS: ${BACKEND_JWT_ACCESS_TOKEN_EXPIRES_SECONDS}
+      TWO_FA_CODE_EXPIRATION_MINUTES: ${BACKEND_TWO_FA_CODE_EXPIRATION_MINUTES}
+      SMTP_HOST: ${BACKEND_SMTP_HOST}
+      SMTP_PORT: ${BACKEND_SMTP_PORT}
+      SMTP_USER: ${BACKEND_SMTP_USER}
+      SMTP_PASS: ${BACKEND_SMTP_PASS}
+      SMTP_FROM: ${BACKEND_SMTP_FROM}
     depends_on:
       postgres:
         condition: service_healthy
@@ -32,14 +40,21 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
-    env_file:
-      - app/.env
+      args:
+        NEXT_PUBLIC_APP_NAME: ${FRONTEND_NEXT_PUBLIC_APP_NAME}
+        NEXT_PUBLIC_APP_BASE_URL: ${FRONTEND_NEXT_PUBLIC_APP_BASE_URL}
+        NEXT_PUBLIC_API_BASE_URL: ${FRONTEND_NEXT_PUBLIC_API_BASE_URL}
+        NEXT_PUBLIC_API_TIMEOUT_MS: ${FRONTEND_NEXT_PUBLIC_API_TIMEOUT_MS}
+        NEXT_PUBLIC_AUTH_COOKIE_NAME: ${FRONTEND_NEXT_PUBLIC_AUTH_COOKIE_NAME}
     ports:
-      - '3001:3001'
+      - '${FRONTEND_HTTP_PORT}:3001'
     environment:
-      NODE_ENV: production
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:3000
-      NEXT_PUBLIC_APP_BASE_URL: http://localhost:3001
+      NODE_ENV: ${FRONTEND_NODE_ENV}
+      NEXT_PUBLIC_APP_NAME: ${FRONTEND_NEXT_PUBLIC_APP_NAME}
+      NEXT_PUBLIC_API_BASE_URL: ${FRONTEND_NEXT_PUBLIC_API_BASE_URL}
+      NEXT_PUBLIC_APP_BASE_URL: ${FRONTEND_NEXT_PUBLIC_APP_BASE_URL}
+      NEXT_PUBLIC_API_TIMEOUT_MS: ${FRONTEND_NEXT_PUBLIC_API_TIMEOUT_MS}
+      NEXT_PUBLIC_AUTH_COOKIE_NAME: ${FRONTEND_NEXT_PUBLIC_AUTH_COOKIE_NAME}
     depends_on:
       backend:
         condition: service_started
@@ -47,15 +62,15 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: b8one
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - '5432:5432'
+      - '${POSTGRES_HTTP_PORT}:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -d b8one']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -64,7 +79,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - '6379:6379'
+      - '${REDIS_HTTP_PORT}:6379'
     volumes:
       - redis_data:/data
     healthcheck:
@@ -73,6 +88,16 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
+
+  adminer:
+    image: adminer:5.2.1
+    environment:
+      ADMINER_DEFAULT_SERVER: ${ADMINER_DEFAULT_SERVER}
+    ports:
+      - '${ADMINER_HTTP_PORT}:8080'
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:

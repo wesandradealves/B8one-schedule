@@ -20,7 +20,7 @@ Monorepo com backend em NestJS (DDD) e frontend em Next.js (App Router), com aut
 
 - `api/`: backend NestJS
 - `app/`: frontend Next.js
-- `docker-compose.yml` (raiz): orquestra frontend + backend + postgres + redis
+- `docker-compose.yml` (raiz): orquestra frontend + backend + postgres + redis + adminer
 - `Dockerfile` (raiz): imagem do backend
 - `Dockerfile.frontend` (raiz): imagem do frontend
 
@@ -266,11 +266,10 @@ Seed inclui 10 exames iniciais (hemograma, glicemia, colesterol, etc.).
 ### 9.2 Ambiente
 
 ```bash
-cp api/.env.example api/.env
-cp app/.env.example app/.env
+cp .env.example .env
 ```
 
-Configure SMTP no `api/.env` para fluxo real de 2FA por e-mail.
+Configurações da orquestração Docker (portas, credenciais e conexões de backend/postgres/redis/adminer), incluindo SMTP/JWT e variáveis públicas do frontend, ficam no `.env` da raiz.
 
 ### 9.3 Subir stack completa com Docker (orquestração atual)
 
@@ -284,6 +283,9 @@ A stack sobe:
 - `backend` (`http://localhost:3000`)
 - `postgres` (`localhost:5432`)
 - `redis` (`localhost:6379`)
+- `adminer` (`http://localhost:5050`)
+
+Observação: portas e dados de conexão acima são parametrizados pelo `.env` da raiz.
 
 No container do backend já executa:
 
@@ -296,6 +298,7 @@ Comandos úteis:
 ```bash
 docker compose logs -f backend
 docker compose logs -f frontend
+docker compose logs -f adminer
 docker compose down
 ```
 
@@ -305,6 +308,13 @@ docker compose down
 docker compose up -d postgres redis
 cd api
 npm ci
+export DATABASE_HOST=localhost
+export DATABASE_PORT=5432
+export DATABASE_USERNAME=postgres
+export DATABASE_PASSWORD=postgres
+export DATABASE_NAME=b8one
+export REDIS_HOST=localhost
+export REDIS_PORT=6379
 npm run migration:run
 npm run seed
 npm run start:dev
@@ -329,6 +339,21 @@ cd app
 npm run build
 npm run start -- -H 0.0.0.0 -p 3001
 ```
+
+### 9.6 Interface do PostgreSQL (Adminer)
+
+Acesso:
+
+- URL: `http://localhost:5050`
+
+Tela de login do Adminer:
+
+- System: `PostgreSQL`
+- Server: `postgres`
+- Port: `5432`
+- Username: `postgres`
+- Password: `postgres`
+- Database: `b8one`
 
 ## 10. Scripts Principais
 
