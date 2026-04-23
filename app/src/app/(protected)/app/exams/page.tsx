@@ -1,10 +1,11 @@
 import { buildSeoMetadata } from '@/utils/seo';
 import { PageContainer, PageDescription, PageTitle } from '@/components/shared/page-container';
+import { APP_ROUTES } from '@/utils/route';
 
 export const metadata = buildSeoMetadata({
   title: 'Exames',
   description: 'Listagem de exames disponíveis',
-  path: '/app/exams',
+  path: APP_ROUTES.exams,
 });
 
 export default function ExamsPage() {
