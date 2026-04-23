@@ -134,22 +134,4 @@ describe('VerifyTwoFactorUseCase', () => {
     });
   });
 
-  it('does not fail when messaging publish fails', async () => {
-    const { useCase, userRepository, authRepository, jwtProvider, messagingProvider } = createSut();
-
-    userRepository.findByEmail.mockResolvedValue(
-      makeUserEntity({ id: 'user-1', email: 'client@b8one.com', profile: UserProfile.CLIENT, isActive: true }),
-    );
-    authRepository.findValidTwoFactorCode.mockResolvedValue(
-      makeAuthTwoFactorEntity({ id: '2fa-1', userId: 'user-1' }),
-    );
-    jwtProvider.signAccessToken.mockResolvedValue('jwt-token');
-    messagingProvider.publish.mockRejectedValue(new Error('queue down'));
-
-    await expect(
-      useCase.execute({ email: 'client@b8one.com', code: '123456' }),
-    ).resolves.toEqual(
-      expect.objectContaining({ accessToken: 'jwt-token', tokenType: 'Bearer' }),
-    );
-  });
 });

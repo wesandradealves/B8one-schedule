@@ -68,16 +68,11 @@ export class LoginUseCase implements ILoginUseCase {
       html: `<p>Seu código de acesso é <strong>${code}</strong>.</p><p>Válido por ${expirationMinutes} minutos.</p>`,
     });
 
-    try {
-      await this.messagingProvider.publish('auth.two-factor.requested', {
-        userId: user.id,
-        email: user.email,
-        profile: user.profile,
-      });
-    } catch (error) {
-      this.logger.warn('Failed to publish auth.two-factor.requested event');
-      this.logger.debug(String(error));
-    }
+    await this.messagingProvider.publish('auth.two-factor.requested', {
+      userId: user.id,
+      email: user.email,
+      profile: user.profile,
+    });
 
     return {
       requiresTwoFactor: true,

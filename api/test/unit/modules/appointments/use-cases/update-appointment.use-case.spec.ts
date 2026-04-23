@@ -164,10 +164,10 @@ describe('UpdateAppointmentUseCase', () => {
 
     expect(appointmentRepository.cancelAppointment).toHaveBeenCalledWith('appointment-id-1');
     expect(appointmentRepository.clearChangeRequest).not.toHaveBeenCalled();
-    expect(messagingProvider.publish).toHaveBeenCalledWith('appointments.updated', {
+    expect(messagingProvider.publish).toHaveBeenCalledWith('appointments.cancelled', {
       appointmentId: 'appointment-id-1',
       userId: 'owner-id',
-      updatedByUserId: 'admin-id',
+      cancelledByUserId: 'admin-id',
     });
     expect(output.status).toBe(AppointmentStatus.CANCELLED);
   });

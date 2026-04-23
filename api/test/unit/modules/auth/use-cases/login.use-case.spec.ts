@@ -151,23 +151,6 @@ describe('LoginUseCase', () => {
     });
   });
 
-  it('does not fail when messaging publish fails', async () => {
-    const { useCase, userRepository, hashProvider, messagingProvider } = createSut();
-
-    userRepository.findByEmail.mockResolvedValue(
-      makeUserEntity({ id: 'user-1', email: 'client@b8one.com', isActive: true }),
-    );
-    hashProvider.compare.mockResolvedValue(true);
-    messagingProvider.publish.mockRejectedValue(new Error('queue down'));
-
-    await expect(
-      useCase.execute({ email: 'client@b8one.com', password: 'Client@123' }),
-    ).resolves.toEqual({
-      requiresTwoFactor: true,
-      message: '2FA code sent to your e-mail.',
-    });
-  });
-
   it('keeps login flow working when smtp host is not configured in non-production', async () => {
     const {
       useCase,

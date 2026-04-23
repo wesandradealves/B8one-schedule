@@ -10,15 +10,12 @@ import { IMessagingProvider } from '@/domain/interfaces/providers/messaging.prov
 import {
   Inject,
   Injectable,
-  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class VerifyTwoFactorUseCase implements IVerifyTwoFactorUseCase {
-  private readonly logger = new Logger(VerifyTwoFactorUseCase.name);
-
   constructor(
     @Inject(IUserRepository)
     private readonly userRepository: IUserRepository,
@@ -58,16 +55,11 @@ export class VerifyTwoFactorUseCase implements IVerifyTwoFactorUseCase {
       profile: user.profile,
     });
 
-    try {
-      await this.messagingProvider.publish('auth.login.success', {
-        userId: user.id,
-        email: user.email,
-        profile: user.profile,
-      });
-    } catch (error) {
-      this.logger.warn('Failed to publish auth.login.success event');
-      this.logger.debug(String(error));
-    }
+    await this.messagingProvider.publish('auth.login.success', {
+      userId: user.id,
+      email: user.email,
+      profile: user.profile,
+    });
 
     return {
       accessToken,
