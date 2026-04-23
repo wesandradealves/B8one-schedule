@@ -4,6 +4,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    env_file:
+      - .env
+    command: sh -c "npm run migration:run:prod && npm run seed:prod && npm run start:prod"
     ports:
       - '3000:3000'
     environment:
