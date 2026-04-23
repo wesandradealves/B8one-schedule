@@ -1,6 +1,6 @@
-node_modules
-dist
-coverage
-*.tsbuildinfo
-.env.*
-!.env.example
+api/node_modules
+api/dist
+api/coverage
+api/*.tsbuildinfo
+api/.env.*
+!api/.env.example
