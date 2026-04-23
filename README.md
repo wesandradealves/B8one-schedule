@@ -231,10 +231,10 @@ Seed inclui 10 exames iniciais (hemograma, glicemia, colesterol, etc.).
 ### 9.2 Ambiente
 
 ```bash
-cp .env.example .env
+cp api/.env.example api/.env
 ```
 
-Configure SMTP no `.env` para fluxo real de 2FA por e-mail.
+Configure SMTP no `api/.env` para fluxo real de 2FA por e-mail.
 
 ### 9.3 Subir stack completa com Docker
 
@@ -252,6 +252,7 @@ A stack sobe `backend`, `postgres` e `redis`. No container do backend já execut
 
 ```bash
 docker compose up -d postgres redis
+cd api
 npm ci
 npm run migration:run
 npm run seed
@@ -277,6 +278,5 @@ Hooks Git configurados com Husky:
 
 - `pre-commit`: `npm test -- --runInBand`
 - `pre-push`: `npm test -- --runInBand`
-
 
 
