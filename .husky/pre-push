@@ -1,2 +1,11 @@
 #!/usr/bin/env sh
-cd api && npm test -- --runInBand
+set -e
+
+cd api
+npm test -- --runInBand
+cd ..
+
+cd app
+npm run typecheck
+npm run lint
+npm run build
