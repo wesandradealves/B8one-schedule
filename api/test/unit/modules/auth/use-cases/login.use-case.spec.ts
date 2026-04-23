@@ -7,6 +7,7 @@ import { IAuthRepository } from '@/domain/interfaces/repositories/auth.repositor
 import { IEmailProvider } from '@/domain/interfaces/providers/email.provider';
 import { IMessagingProvider } from '@/domain/interfaces/providers/messaging.provider';
 import { UserProfile } from '@/domain/commons/enums/user-profile.enum';
+import { AuthTwoFactorPurpose } from '@/domain/commons/enums/auth-two-factor-purpose.enum';
 import { makeUserEntity } from '../../../helpers/factories';
 
 type Sut = {
@@ -135,6 +136,7 @@ describe('LoginUseCase', () => {
       'user-1',
       expect.stringMatching(/^\d{6}$/),
       expect.any(Date),
+      AuthTwoFactorPurpose.LOGIN,
     );
 
     expect(emailProvider.send).toHaveBeenCalledWith(

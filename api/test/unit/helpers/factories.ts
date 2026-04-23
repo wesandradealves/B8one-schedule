@@ -1,6 +1,7 @@
 import { AppointmentChangeStatus } from '@/domain/commons/enums/appointment-change-status.enum';
 import { AppointmentStatus } from '@/domain/commons/enums/appointment-status.enum';
 import { UserProfile } from '@/domain/commons/enums/user-profile.enum';
+import { AuthTwoFactorPurpose } from '@/domain/commons/enums/auth-two-factor-purpose.enum';
 import type { AppointmentEntity } from '@/domain/entities/appointment.entity';
 import type { AuthTwoFactorEntity } from '@/domain/entities/auth.two-factor.entity';
 import type { ExamEntity } from '@/domain/entities/exam.entity';
@@ -82,6 +83,7 @@ export function makeAuthTwoFactorEntity(
     updatedAt: overrides.updatedAt ?? new Date('2026-01-01T00:00:00.000Z'),
     userId: overrides.userId ?? 'user-id-1',
     code: overrides.code ?? '123456',
+    purpose: overrides.purpose ?? AuthTwoFactorPurpose.LOGIN,
     expiresAt: overrides.expiresAt ?? new Date(Date.now() + 10 * 60 * 1000),
     usedAt: overrides.usedAt ?? null,
     user: overrides.user,
