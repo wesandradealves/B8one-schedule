@@ -6,6 +6,11 @@ export interface PaginatedResult<T> {
   totalPages: number;
 }
 
+export interface PaginationQueryParams {
+  page?: number;
+  limit?: number;
+}
+
 export interface ApiErrorPayload {
   statusCode: number;
   message: string;

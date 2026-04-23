@@ -1,6 +1,7 @@
 import api from '@/services/api';
-import type { PaginatedResult } from '@/types/api';
+import type { PaginatedResult, PaginationQueryParams } from '@/types/api';
 import type { Appointment } from '@/types/appointment';
+import { executeRequest } from '@/utils/request';
 
 interface CreateAppointmentPayload {
   examId: string;
@@ -9,19 +10,17 @@ interface CreateAppointmentPayload {
 }
 
 export const listAppointments = async (
-  page = 1,
-  limit = 10,
+  params: PaginationQueryParams = {},
 ): Promise<PaginatedResult<Appointment>> => {
-  const response = await api.get<PaginatedResult<Appointment>>('/appointments/all', {
-    params: { page, limit },
-  });
-
-  return response.data;
+  return executeRequest(() =>
+    api.get<PaginatedResult<Appointment>>('/appointments/all', {
+      params,
+    }),
+  );
 };
 
 export const createAppointment = async (
   payload: CreateAppointmentPayload,
 ): Promise<Appointment> => {
-  const response = await api.post<Appointment>('/appointments', payload);
-  return response.data;
+  return executeRequest(() => api.post<Appointment>('/appointments', payload));
 };

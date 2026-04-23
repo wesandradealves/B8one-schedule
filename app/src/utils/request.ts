@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { type AxiosResponse } from 'axios';
 
 export const buildQueryString = (
   params: Record<string, string | number | boolean | undefined>,
@@ -31,4 +31,15 @@ export const getRequestErrorMessage = (error: unknown): string => {
   }
 
   return 'Unexpected request error';
+};
+
+export const executeRequest = async <T>(
+  request: () => Promise<AxiosResponse<T>>,
+): Promise<T> => {
+  try {
+    const response = await request();
+    return response.data;
+  } catch (error) {
+    throw new Error(getRequestErrorMessage(error));
+  }
 };

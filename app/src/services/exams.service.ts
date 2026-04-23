@@ -1,24 +1,22 @@
 import api from '@/services/api';
-import type { PaginatedResult } from '@/types/api';
+import type { PaginatedResult, PaginationQueryParams } from '@/types/api';
 import type { Exam } from '@/types/exam';
+import { executeRequest } from '@/utils/request';
 
-interface ListExamsParams {
-  page?: number;
-  limit?: number;
+interface ListExamsParams extends PaginationQueryParams {
   search?: string;
 }
 
 export const listExams = async (
   params: ListExamsParams = {},
 ): Promise<PaginatedResult<Exam>> => {
-  const response = await api.get<PaginatedResult<Exam>>('/exams/all', {
-    params,
-  });
-
-  return response.data;
+  return executeRequest(() =>
+    api.get<PaginatedResult<Exam>>('/exams/all', {
+      params,
+    }),
+  );
 };
 
 export const getExamById = async (id: string): Promise<Exam> => {
-  const response = await api.get<Exam>(`/exams/${id}`);
-  return response.data;
+  return executeRequest(() => api.get<Exam>(`/exams/${id}`));
 };

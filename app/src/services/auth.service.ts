@@ -1,4 +1,5 @@
 import api from '@/services/api';
+import { executeRequest } from '@/utils/request';
 import type {
   LoginPayload,
   LoginResponse,
@@ -7,13 +8,11 @@ import type {
 } from '@/types/auth';
 
 export const login = async (payload: LoginPayload): Promise<LoginResponse> => {
-  const response = await api.post<LoginResponse>('/auth/login', payload);
-  return response.data;
+  return executeRequest(() => api.post<LoginResponse>('/auth/login', payload));
 };
 
 export const verifyTwoFactor = async (
   payload: VerifyTwoFactorPayload,
 ): Promise<VerifyTwoFactorResponse> => {
-  const response = await api.post<VerifyTwoFactorResponse>('/auth/2fa/verify', payload);
-  return response.data;
+  return executeRequest(() => api.post<VerifyTwoFactorResponse>('/auth/2fa/verify', payload));
 };
