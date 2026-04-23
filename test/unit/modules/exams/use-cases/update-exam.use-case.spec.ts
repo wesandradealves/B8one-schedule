@@ -1,0 +1,124 @@
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
+import { UpdateExamUseCase } from '@/modules/exams/use-cases/update-exam.use-case';
+import { IExamRepository } from '@/domain/interfaces/repositories/exam.repository';
+import { IMessagingProvider } from '@/domain/interfaces/providers/messaging.provider';
+import { UserProfile } from '@/domain/commons/enums/user-profile.enum';
+import {
+  makeAuthenticatedUser,
+  makeExamEntity,
+} from '../../../helpers/factories';
+
+type Sut = {
+  useCase: UpdateExamUseCase;
+  examRepository: jest.Mocked<IExamRepository>;
+  messagingProvider: jest.Mocked<IMessagingProvider>;
+};
+
+function createSut(): Sut {
+  const examRepository: jest.Mocked<IExamRepository> = {
+    listActive: jest.fn(),
+    listAll: jest.fn(),
+    findById: jest.fn(),
+    findAnyById: jest.fn(),
+    createExam: jest.fn(),
+    updateExam: jest.fn(),
+    deleteExam: jest.fn(),
+  };
+
+  const messagingProvider: jest.Mocked<IMessagingProvider> = {
+    publish: jest.fn(),
+  };
+
+  return {
+    useCase: new UpdateExamUseCase(examRepository, messagingProvider),
+    examRepository,
+    messagingProvider,
+  };
+}
+
+describe('UpdateExamUseCase', () => {
+  it('throws ForbiddenException when requester is not admin', async () => {
+    const { useCase, examRepository } = createSut();
+
+    await expect(
+      useCase.execute({
+        id: 'exam-id-1',
+        user: makeAuthenticatedUser({ profile: UserProfile.CLIENT }),
+        name: 'Updated',
+      }),
+    ).rejects.toThrow(new ForbiddenException('Only admin users can update exams'));
+
+    expect(examRepository.updateExam).not.toHaveBeenCalled();
+  });
+
+  it('throws BadRequestException when duration is invalid', async () => {
+    const { useCase } = createSut();
+
+    await expect(
+      useCase.execute({
+        id: 'exam-id-1',
+        user: makeAuthenticatedUser({ profile: UserProfile.ADMIN }),
+        durationMinutes: 0,
+      }),
+    ).rejects.toThrow(new BadRequestException('Duration must be greater than zero'));
+  });
+
+  it('throws BadRequestException when price is negative', async () => {
+    const { useCase } = createSut();
+
+    await expect(
+      useCase.execute({
+        id: 'exam-id-1',
+        user: makeAuthenticatedUser({ profile: UserProfile.ADMIN }),
+        priceCents: -10,
+      }),
+    ).rejects.toThrow(new BadRequestException('Price cannot be negative'));
+  });
+
+  it('throws NotFoundException when exam does not exist', async () => {
+    const { useCase, examRepository } = createSut();
+    examRepository.updateExam.mockResolvedValue(null);
+
+    await expect(
+      useCase.execute({
+        id: 'missing-id',
+        user: makeAuthenticatedUser({ profile: UserProfile.ADMIN }),
+        name: 'Updated',
+      }),
+    ).rejects.toThrow(new NotFoundException('Exam not found'));
+  });
+
+  it('updates exam and publishes event', async () => {
+    const { useCase, examRepository, messagingProvider } = createSut();
+
+    examRepository.updateExam.mockResolvedValue(
+      makeExamEntity({ id: 'exam-id-1', name: 'Updated Exam' }),
+    );
+
+    const output = await useCase.execute({
+      id: 'exam-id-1',
+      user: makeAuthenticatedUser({ profile: UserProfile.ADMIN }),
+      name: 'Updated Exam',
+      durationMinutes: 40,
+      priceCents: 20000,
+      isActive: true,
+    });
+
+    expect(examRepository.updateExam).toHaveBeenCalledWith('exam-id-1', {
+      name: 'Updated Exam',
+      description: undefined,
+      durationMinutes: 40,
+      priceCents: 20000,
+      isActive: true,
+    });
+    expect(messagingProvider.publish).toHaveBeenCalledWith('exams.updated', {
+      examId: 'exam-id-1',
+      name: 'Updated Exam',
+    });
+    expect(output.id).toBe('exam-id-1');
+  });
+});
