@@ -68,10 +68,10 @@ export class UpdateAppointmentUseCase implements IUpdateAppointmentUseCase {
         throw new NotFoundException('Appointment not found');
       }
 
-      await this.messagingProvider.publish('appointments.updated', {
+      await this.messagingProvider.publish('appointments.cancelled', {
         appointmentId: cancelled.id,
         userId: cancelled.userId,
-        updatedByUserId: input.user.id,
+        cancelledByUserId: input.user.id,
       });
 
       return cancelled;

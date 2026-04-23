@@ -3,6 +3,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BullMqProvider } from './bullmq.provider';
+import { BullMqProcessor } from './bullmq.processor';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { BullMqProvider } from './bullmq.provider';
       provide: IMessagingProvider,
       useClass: BullMqProvider,
     },
+    BullMqProcessor,
   ],
   exports: [IMessagingProvider],
 })
