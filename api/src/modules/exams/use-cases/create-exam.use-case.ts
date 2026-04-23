@@ -1,3 +1,5 @@
+import { bumpExamsListCacheVersion } from '@/domain/commons/utils/exam-cache.util';
+import { ICacheProvider } from '@/domain/interfaces/providers/cache.provider';
 import { IExamRepository } from '@/domain/interfaces/repositories/exam.repository';
 import { assertAdmin } from '@/domain/commons/utils/profile-authorization.util';
 import {
@@ -12,6 +14,8 @@ export class CreateExamUseCase implements ICreateExamUseCase {
   constructor(
     @Inject(IExamRepository)
     private readonly examRepository: IExamRepository,
+    @Inject(ICacheProvider)
+    private readonly cacheProvider: ICacheProvider,
     @Inject(IMessagingProvider)
     private readonly messagingProvider: IMessagingProvider,
   ) {}
@@ -32,6 +36,8 @@ export class CreateExamUseCase implements ICreateExamUseCase {
       durationMinutes: input.durationMinutes,
       priceCents: input.priceCents,
     });
+
+    await bumpExamsListCacheVersion(this.cacheProvider);
 
     await this.messagingProvider.publish('exams.created', {
       examId: exam.id,

@@ -6,6 +6,7 @@ import { IGetExamByIdUseCase } from '@/domain/interfaces/use-cases/exams/get-exa
 import { IListAllExamsUseCase } from '@/domain/interfaces/use-cases/exams/list-all-exams.use-case';
 import { IUpdateExamUseCase } from '@/domain/interfaces/use-cases/exams/update-exam.use-case';
 import { BullMqMessagingModule } from '@/infrastructure/providers/messaging/bullmq/bullmq.module';
+import { RedisCacheModule } from '@/infrastructure/providers/cache/redis/redis-cache.module';
 import { ExamRepository } from '@/infrastructure/repositories/exam.repository';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -21,6 +22,7 @@ import { UpdateExamUseCase } from './use-cases/update-exam.use-case';
   imports: [
     TypeOrmModule.forFeature([ExamEntity]),
     BullMqMessagingModule,
+    RedisCacheModule,
     SharedModule,
   ],
   controllers: [ExamsController],

@@ -1,3 +1,5 @@
+import { EXAMS_LIST_CACHE_VERSION_KEY } from '@/domain/commons/constants/exam-cache.constant';
+import { ICacheProvider } from '@/domain/interfaces/providers/cache.provider';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { CreateExamUseCase } from '@/modules/exams/use-cases/create-exam.use-case';
 import { IExamRepository } from '@/domain/interfaces/repositories/exam.repository';
@@ -11,6 +13,7 @@ import {
 type Sut = {
   useCase: CreateExamUseCase;
   examRepository: jest.Mocked<IExamRepository>;
+  cacheProvider: jest.Mocked<ICacheProvider>;
   messagingProvider: jest.Mocked<IMessagingProvider>;
 };
 
@@ -29,9 +32,16 @@ function createSut(): Sut {
     publish: jest.fn(),
   };
 
+  const cacheProvider: jest.Mocked<ICacheProvider> = {
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+  };
+
   return {
-    useCase: new CreateExamUseCase(examRepository, messagingProvider),
+    useCase: new CreateExamUseCase(examRepository, cacheProvider, messagingProvider),
     examRepository,
+    cacheProvider,
     messagingProvider,
   };
 }
@@ -80,7 +90,7 @@ describe('CreateExamUseCase', () => {
   });
 
   it('creates exam and publishes event on success', async () => {
-    const { useCase, examRepository, messagingProvider } = createSut();
+    const { useCase, examRepository, cacheProvider, messagingProvider } = createSut();
     examRepository.createExam.mockResolvedValue(
       makeExamEntity({ id: 'exam-id-1', name: 'Exam A' }),
     );
@@ -103,6 +113,10 @@ describe('CreateExamUseCase', () => {
       examId: 'exam-id-1',
       name: 'Exam A',
     });
+    expect(cacheProvider.set).toHaveBeenCalledWith(
+      EXAMS_LIST_CACHE_VERSION_KEY,
+      expect.any(String),
+    );
     expect(output.id).toBe('exam-id-1');
   });
 

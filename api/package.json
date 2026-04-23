@@ -8,10 +8,10 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "build": "nest build",
+    "build": "nest build --builder tsc",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "nest start",
-    "start:dev": "nest start --watch",
+    "start": "nest start --builder tsc",
+    "start:dev": "nest start --watch --builder tsc",
     "start:prod": "node -r module-alias/register dist/main",
     "lint": "eslint \"{src,test}/**/*.ts\" --max-warnings=0",
     "test": "jest",
