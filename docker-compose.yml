@@ -28,6 +28,22 @@ services:
       redis:
         condition: service_healthy
 
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    env_file:
+      - app/.env
+    ports:
+      - '3001:3001'
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_BASE_URL: http://localhost:3001
+    depends_on:
+      backend:
+        condition: service_started
+
   postgres:
     image: postgres:16-alpine
     environment:

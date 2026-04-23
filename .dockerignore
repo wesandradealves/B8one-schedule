@@ -12,5 +12,11 @@ api/*.tsbuildinfo
 api/.env
 api/.env.*
 !api/.env.example
+app/node_modules
+app/.next
+app/*.tsbuildinfo
+app/.env
+app/.env.*
+!app/.env.example
 npm-debug.log
 .env
