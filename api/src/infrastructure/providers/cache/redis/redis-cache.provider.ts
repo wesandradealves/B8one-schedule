@@ -13,7 +13,15 @@ export class RedisCacheProvider implements ICacheProvider {
   }
 
   async set<T>(key: string, value: T, ttlSeconds?: number): Promise<void> {
-    await this.cacheManager.set(key, value, ttlSeconds);
+    const ttlMilliseconds =
+      ttlSeconds === undefined ? undefined : ttlSeconds * 1000;
+
+    if (ttlMilliseconds === undefined) {
+      await this.cacheManager.set(key, value);
+      return;
+    }
+
+    await this.cacheManager.set(key, value, ttlMilliseconds);
   }
 
   async del(key: string): Promise<void> {

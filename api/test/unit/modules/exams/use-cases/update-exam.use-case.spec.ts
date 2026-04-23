@@ -1,3 +1,5 @@
+import { EXAMS_LIST_CACHE_VERSION_KEY } from '@/domain/commons/constants/exam-cache.constant';
+import { ICacheProvider } from '@/domain/interfaces/providers/cache.provider';
 import {
   BadRequestException,
   ForbiddenException,
@@ -15,6 +17,7 @@ import {
 type Sut = {
   useCase: UpdateExamUseCase;
   examRepository: jest.Mocked<IExamRepository>;
+  cacheProvider: jest.Mocked<ICacheProvider>;
   messagingProvider: jest.Mocked<IMessagingProvider>;
 };
 
@@ -33,9 +36,16 @@ function createSut(): Sut {
     publish: jest.fn(),
   };
 
+  const cacheProvider: jest.Mocked<ICacheProvider> = {
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+  };
+
   return {
-    useCase: new UpdateExamUseCase(examRepository, messagingProvider),
+    useCase: new UpdateExamUseCase(examRepository, cacheProvider, messagingProvider),
     examRepository,
+    cacheProvider,
     messagingProvider,
   };
 }
@@ -93,7 +103,7 @@ describe('UpdateExamUseCase', () => {
   });
 
   it('updates exam and publishes event', async () => {
-    const { useCase, examRepository, messagingProvider } = createSut();
+    const { useCase, examRepository, cacheProvider, messagingProvider } = createSut();
 
     examRepository.updateExam.mockResolvedValue(
       makeExamEntity({ id: 'exam-id-1', name: 'Updated Exam' }),
@@ -119,6 +129,10 @@ describe('UpdateExamUseCase', () => {
       examId: 'exam-id-1',
       name: 'Updated Exam',
     });
+    expect(cacheProvider.set).toHaveBeenCalledWith(
+      EXAMS_LIST_CACHE_VERSION_KEY,
+      expect.any(String),
+    );
     expect(output.id).toBe('exam-id-1');
   });
 });

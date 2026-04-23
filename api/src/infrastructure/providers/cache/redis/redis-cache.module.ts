@@ -11,11 +11,12 @@ import { RedisCacheProvider } from './redis-cache.provider';
       isGlobal: true,
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
+        // cache-manager-ioredis-yet expects TTL in milliseconds.
         store: await redisStore({
           host: configService.get<string>('redis.host'),
           port: configService.get<number>('redis.port'),
           password: configService.get<string>('redis.password') || undefined,
-          ttl: configService.get<number>('redis.ttlSeconds'),
+          ttl: configService.get<number>('redis.ttlSeconds', 300) * 1000,
         }),
       }),
     }),
