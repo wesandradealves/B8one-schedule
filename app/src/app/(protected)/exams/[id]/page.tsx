@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { buildSeoMetadata } from '@/hooks/useSeoMetadata';
+import { buildSeoMetadata } from '@/utils/seo';
 import { PageContainer, PageDescription, PageTitle } from '@/components/shared/page-container';
 
 interface ExamDetailsPageProps {
