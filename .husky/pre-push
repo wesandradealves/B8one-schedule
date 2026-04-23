@@ -1,1 +1,2 @@
-npm test -- --runInBand
+#!/usr/bin/env sh
+cd api && npm test -- --runInBand
