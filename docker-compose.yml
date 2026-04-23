@@ -1,0 +1,63 @@
+services:
+  backend:
+    container_name: b8one-backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: development
+      HTTP_PORT: 3000
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_NAME: b8one
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_TTL_SECONDS: 300
+      JWT_ACCESS_TOKEN_SECRET: change-me-access-token-secret
+      JWT_REFRESH_TOKEN_SECRET: change-me-refresh-token-secret
+      TWO_FA_CODE_EXPIRATION_MINUTES: 10
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    container_name: b8one-postgres
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: b8one
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d b8one']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    container_name: b8one-redis
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  postgres_data:
+  redis_data:
