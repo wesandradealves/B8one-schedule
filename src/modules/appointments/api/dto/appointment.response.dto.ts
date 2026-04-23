@@ -39,9 +39,9 @@ export class AppointmentResponseDto {
   @ApiPropertyOptional({ type: String, nullable: true })
   requestedNotes?: string | null;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: String, nullable: true })
   userFullName?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: String, nullable: true })
   userEmail?: string;
 }
