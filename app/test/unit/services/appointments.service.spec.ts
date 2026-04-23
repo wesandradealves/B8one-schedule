@@ -15,6 +15,11 @@ jest.mock('@/utils/request', () => ({
 }));
 
 describe('appointments service', () => {
+  const mockedApi = api as unknown as {
+    get: jest.Mock;
+    post: jest.Mock;
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -34,7 +39,7 @@ describe('appointments service', () => {
     expect(executeRequest).toHaveBeenCalledTimes(1);
     const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
     await requestFactory();
-    expect((api as any).get).toHaveBeenCalledWith('/appointments/all', { params });
+    expect(mockedApi.get).toHaveBeenCalledWith('/appointments/all', { params });
   });
 
   it('should create appointment through centralized request flow', async () => {
@@ -46,6 +51,23 @@ describe('appointments service', () => {
     expect(executeRequest).toHaveBeenCalledTimes(1);
     const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
     await requestFactory();
-    expect((api as any).post).toHaveBeenCalledWith('/appointments', payload);
+    expect(mockedApi.post).toHaveBeenCalledWith('/appointments', payload);
+  });
+
+  it('should list appointments with empty params by default', async () => {
+    (executeRequest as jest.Mock).mockResolvedValue({
+      data: [],
+      page: 1,
+      limit: 10,
+      total: 0,
+      totalPages: 0,
+    });
+
+    await listAppointments();
+
+    expect(executeRequest).toHaveBeenCalledTimes(1);
+    const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
+    await requestFactory();
+    expect(mockedApi.get).toHaveBeenCalledWith('/appointments/all', { params: {} });
   });
 });

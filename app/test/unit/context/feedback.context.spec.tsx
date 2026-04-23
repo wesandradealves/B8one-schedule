@@ -37,4 +37,10 @@ describe('FeedbackContext', () => {
     });
     expect(result.current.messages).toHaveLength(0);
   });
+
+  it('should throw when hook is used outside provider', () => {
+    expect(() => renderHook(() => useFeedbackContext())).toThrow(
+      'useFeedbackContext must be used within FeedbackProvider',
+    );
+  });
 });

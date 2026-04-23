@@ -21,4 +21,14 @@ describe('seo utils', () => {
     expect(metadata.description).toBe('Portal de agendamento de exames');
     expect(metadata.robots).toEqual({ index: true, follow: true });
   });
+
+  it('should include open graph image when image is provided', () => {
+    const metadata = buildSeoMetadata({
+      title: 'Detalhes do exame',
+      path: '/app/exams/123',
+      image: 'https://example.com/exam.png',
+    });
+
+    expect(metadata.openGraph?.images).toEqual([{ url: 'https://example.com/exam.png' }]);
+  });
 });

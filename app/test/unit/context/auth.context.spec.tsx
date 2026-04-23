@@ -51,11 +51,24 @@ describe('AuthContext', () => {
     expect(setCookieMock).toHaveBeenCalled();
 
     act(() => {
+      result.current.setSession('token-without-user');
+    });
+
+    expect(result.current.token).toBe('token-without-user');
+    expect(result.current.user).toBeNull();
+
+    act(() => {
       result.current.clearSession();
     });
 
     expect(result.current.token).toBeNull();
     expect(result.current.user).toBeNull();
     expect(removeCookieMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should throw when hook is used outside provider', () => {
+    expect(() => renderHook(() => useAuthContext())).toThrow(
+      'useAuthContext must be used within AuthProvider',
+    );
   });
 });

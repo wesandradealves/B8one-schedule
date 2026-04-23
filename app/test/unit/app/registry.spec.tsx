@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import StyledComponentsRegistry from '@/app/registry';
 
-const useServerInsertedHTMLMock = jest.fn();
+const useServerInsertedHTMLMock = jest.fn((callback: () => React.ReactNode) => callback());
 
 jest.mock('next/navigation', () => ({
   useServerInsertedHTML: (callback: () => React.ReactNode) => {
@@ -19,5 +19,6 @@ describe('StyledComponentsRegistry', () => {
 
     expect(screen.getByText('registry-content')).toBeInTheDocument();
     expect(useServerInsertedHTMLMock).toHaveBeenCalledTimes(1);
+    expect(useServerInsertedHTMLMock.mock.results[0].value).toBeDefined();
   });
 });

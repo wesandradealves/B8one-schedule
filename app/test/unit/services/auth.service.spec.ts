@@ -14,6 +14,10 @@ jest.mock('@/utils/request', () => ({
 }));
 
 describe('auth service', () => {
+  const mockedApi = api as unknown as {
+    post: jest.Mock;
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -30,7 +34,7 @@ describe('auth service', () => {
     expect(executeRequest).toHaveBeenCalledTimes(1);
     const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
     await requestFactory();
-    expect((api as any).post).toHaveBeenCalledWith('/auth/login', payload);
+    expect(mockedApi.post).toHaveBeenCalledWith('/auth/login', payload);
   });
 
   it('should call verify 2fa endpoint through executeRequest', async () => {
@@ -47,6 +51,6 @@ describe('auth service', () => {
     expect(executeRequest).toHaveBeenCalledTimes(1);
     const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
     await requestFactory();
-    expect((api as any).post).toHaveBeenCalledWith('/auth/2fa/verify', payload);
+    expect(mockedApi.post).toHaveBeenCalledWith('/auth/2fa/verify', payload);
   });
 });

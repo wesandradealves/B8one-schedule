@@ -2,10 +2,16 @@ import { render, screen, waitFor } from '@testing-library/react';
 import Providers from '@/app/providers';
 
 const teardownMock = jest.fn();
-const setupApiInterceptorsMock = jest.fn((_: unknown) => teardownMock);
+const setupApiInterceptorsMock = jest.fn(
+  (bindings: { getToken?: () => string | null }) => {
+    bindings.getToken?.();
+    return teardownMock;
+  },
+);
 
 jest.mock('@/services/api', () => ({
-  setupApiInterceptors: (bindings: unknown) => setupApiInterceptorsMock(bindings),
+  setupApiInterceptors: (bindings: { getToken?: () => string | null }) =>
+    setupApiInterceptorsMock(bindings),
 }));
 
 jest.mock('@/app/registry', () => ({
@@ -36,6 +42,9 @@ describe('Providers', () => {
     await waitFor(() => {
       expect(setupApiInterceptorsMock).toHaveBeenCalledTimes(1);
     });
+    expect(
+      (setupApiInterceptorsMock.mock.calls[0][0] as { getToken: () => string | null }).getToken(),
+    ).toBeNull();
 
     unmount();
     expect(teardownMock).toHaveBeenCalledTimes(1);

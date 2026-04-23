@@ -43,4 +43,10 @@ describe('LoaderContext', () => {
     });
     expect(result.current.isLoading).toBe(false);
   });
+
+  it('should throw when hook is used outside provider', () => {
+    expect(() => renderHook(() => useLoaderContext())).toThrow(
+      'useLoaderContext must be used within LoaderProvider',
+    );
+  });
 });

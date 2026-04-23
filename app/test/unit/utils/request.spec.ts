@@ -31,6 +31,22 @@ describe('request utils', () => {
     expect(getRequestErrorMessage(error)).toBe('custom message');
   });
 
+  it('should fallback to axios error message when payload message is unavailable', () => {
+    const error = {
+      isAxiosError: true,
+      message: 'fallback message',
+      response: {
+        data: {},
+      },
+    };
+
+    expect(getRequestErrorMessage(error)).toBe('fallback message');
+  });
+
+  it('should extract message from native Error instances', () => {
+    expect(getRequestErrorMessage(new Error('native failure'))).toBe('native failure');
+  });
+
   it('should fallback to generic error message for unknown values', () => {
     expect(getRequestErrorMessage('oops')).toBe('Unexpected request error');
   });

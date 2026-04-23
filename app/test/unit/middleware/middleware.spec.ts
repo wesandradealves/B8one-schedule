@@ -12,6 +12,12 @@ const buildToken = (payload: Record<string, unknown>): string => {
   return `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode(payload)}.signature`;
 };
 
+const buildInvalidPayloadToken = (): string => {
+  const encodedHeader = encode({ alg: 'HS256', typ: 'JWT' });
+  const invalidPayload = Buffer.from('invalid-json-payload').toString('base64url');
+  return `${encodedHeader}.${invalidPayload}.signature`;
+};
+
 const createRequest = (
   pathname: string,
   options?: {
@@ -83,5 +89,17 @@ describe('middleware', () => {
     const response = middleware(createRequest('/app', { token: 'malformed-token' }));
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe('http://localhost:3001/login?next=%2Fapp');
+  });
+
+  it('should treat invalid jwt payload as unauthenticated', () => {
+    const response = middleware(createRequest('/app', { token: buildInvalidPayloadToken() }));
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe('http://localhost:3001/login?next=%2Fapp');
+  });
+
+  it('should continue when route is public and user is unauthenticated', () => {
+    const response = middleware(createRequest('/login'));
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
   });
 });

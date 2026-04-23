@@ -14,6 +14,10 @@ jest.mock('@/utils/request', () => ({
 }));
 
 describe('exams service', () => {
+  const mockedApi = api as unknown as {
+    get: jest.Mock;
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -33,7 +37,7 @@ describe('exams service', () => {
     expect(executeRequest).toHaveBeenCalledTimes(1);
     const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
     await requestFactory();
-    expect((api as any).get).toHaveBeenCalledWith('/exams/all', { params });
+    expect(mockedApi.get).toHaveBeenCalledWith('/exams/all', { params });
   });
 
   it('should fetch exam details by id', async () => {
@@ -50,6 +54,23 @@ describe('exams service', () => {
     expect(executeRequest).toHaveBeenCalledTimes(1);
     const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
     await requestFactory();
-    expect((api as any).get).toHaveBeenCalledWith('/exams/exam-1');
+    expect(mockedApi.get).toHaveBeenCalledWith('/exams/exam-1');
+  });
+
+  it('should list exams with empty params by default', async () => {
+    (executeRequest as jest.Mock).mockResolvedValue({
+      data: [],
+      page: 1,
+      limit: 10,
+      total: 0,
+      totalPages: 0,
+    });
+
+    await listExams();
+
+    expect(executeRequest).toHaveBeenCalledTimes(1);
+    const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
+    await requestFactory();
+    expect(mockedApi.get).toHaveBeenCalledWith('/exams/all', { params: {} });
   });
 });
