@@ -1,6 +1,6 @@
-# B8one API
+# B8one Plataforma (API + Frontend)
 
-API backend em NestJS com arquitetura DDD, autenticação JWT + 2FA por e-mail, autorização por perfil/permissão, validação com Zod, TypeORM com QueryBuilder e documentação Swagger.
+Monorepo com backend em NestJS (DDD) e frontend em Next.js (App Router), com autenticação JWT + 2FA por e-mail, autorização por perfil/permissão, validação com Zod, TypeORM com QueryBuilder e documentação Swagger.
 
 ## 1. Stack Técnica
 
@@ -16,17 +16,25 @@ API backend em NestJS com arquitetura DDD, autenticação JWT + 2FA por e-mail, 
 
 ## 2. Arquitetura e Padrões
 
+### 2.0 Estrutura do Monorepo
+
+- `api/`: backend NestJS
+- `app/`: frontend Next.js
+- `docker-compose.yml` (raiz): orquestra frontend + backend + postgres + redis
+- `Dockerfile` (raiz): imagem do backend
+- `Dockerfile.frontend` (raiz): imagem do frontend
+
 ### 2.1 Camadas
 
-- `src/domain`
+- `api/src/domain`
   - Entidades, enums, contratos (interfaces), tipos e regras comuns.
-- `src/modules`
+- `api/src/modules`
   - Módulos de aplicação (`auth`, `users`, `exams`, `appointments`) com:
     - `api/controllers`
     - `api/dto`
     - `api/schemas` (Zod)
     - `use-cases`
-- `src/infrastructure`
+- `api/src/infrastructure`
   - Implementações concretas: banco, providers, repositories, guards, swagger, health, metrics.
 
 ### 2.2 Padrões aplicados
@@ -47,7 +55,7 @@ API backend em NestJS com arquitetura DDD, autenticação JWT + 2FA por e-mail, 
 
 ### 3.2 Permissões por perfil
 
-Base: `src/domain/commons/constants/profile-permissions.constant.ts`
+Base: `api/src/domain/commons/constants/profile-permissions.constant.ts`
 
 | Permissão | ADMIN | CLIENT |
 |---|---:|---:|
@@ -204,7 +212,7 @@ Formato de erro HTTP padronizado pelo `HttpExceptionFilter`:
 
 ## 8. Seed de Dados
 
-Arquivo: `src/infrastructure/database/seeds/run-seed.ts`
+Arquivo: `api/src/infrastructure/database/seeds/run-seed.ts`
 
 ### 8.1 Usuários padrão
 
@@ -226,29 +234,46 @@ Seed inclui 10 exames iniciais (hemograma, glicemia, colesterol, etc.).
 ### 9.1 Pré-requisitos
 
 - Node.js `>=22`
+- npm `>=10`
 - Docker + Docker Compose
 
 ### 9.2 Ambiente
 
 ```bash
 cp api/.env.example api/.env
+cp app/.env.example app/.env
 ```
 
 Configure SMTP no `api/.env` para fluxo real de 2FA por e-mail.
 
-### 9.3 Subir stack completa com Docker
+### 9.3 Subir stack completa com Docker (orquestração atual)
 
 ```bash
 docker compose up -d --build
 ```
 
-A stack sobe `backend`, `postgres` e `redis`. No container do backend já executa:
+A stack sobe:
+
+- `frontend` (`http://localhost:3001`)
+- `backend` (`http://localhost:3000`)
+- `postgres` (`localhost:5432`)
+- `redis` (`localhost:6379`)
+
+No container do backend já executa:
 
 - `migration:run:prod`
 - `seed:prod`
 - `start:prod`
 
-### 9.4 Rodar local (com DB/Redis em container)
+Comandos úteis:
+
+```bash
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose down
+```
+
+### 9.4 Rodar backend isolado (local + infraestrutura em container)
 
 ```bash
 docker compose up -d postgres redis
@@ -259,9 +284,32 @@ npm run seed
 npm run start:dev
 ```
 
-## 10. Scripts Principais
+Backend disponível em `http://localhost:3000` e Swagger em `http://localhost:3000/docs`.
+
+### 9.5 Rodar frontend isolado (local)
 
 ```bash
+cd app
+npm ci
+npm run dev
+```
+
+Frontend disponível em `http://localhost:3001`.
+
+Execução de produção isolada do frontend:
+
+```bash
+cd app
+npm run build
+npm run start -- -H 0.0.0.0 -p 3001
+```
+
+## 10. Scripts Principais
+
+### 10.1 Backend (`api/`)
+
+```bash
+cd api
 npm run build
 npm run start:dev
 npm run start:prod
@@ -272,11 +320,71 @@ npm run migration:revert
 npm run seed
 ```
 
+### 10.2 Frontend (`app/`)
+
+```bash
+cd app
+npm run dev
+npm run build
+npm run start
+npm run typecheck
+npm run lint
+npm test
+```
+
 ## 11. Qualidade e Gate de Commit
 
 Hooks Git configurados com Husky:
 
-- `pre-commit`: `npm test -- --runInBand`
-- `pre-push`: `npm test -- --runInBand`
+- `pre-commit`
+  - `api`: `npm test -- --runInBand`
+  - `app`: `npm run typecheck && npm run lint && npm test -- --runInBand && npm run build`
+- `pre-push`
+  - `api`: `npm test -- --runInBand`
+  - `app`: `npm run typecheck && npm run lint && npm test -- --runInBand && npm run build`
 
+## 12. Frontend (Next.js) - Arquitetura e Testes
 
+### 12.1 Dependências principais
+
+- Next.js 15 + React 19
+- TypeScript estrito
+- Styled Components (SSR com `src/app/registry.tsx`)
+- TailwindCSS + SCSS
+- Axios (instância única + interceptors)
+- React Query
+- Jest + Testing Library
+
+### 12.2 Arquitetura aplicada
+
+- `app/src/app`
+  - App Router com grupos de rota:
+    - `(public)` para autenticação (`/login`)
+    - `(protected)` para área autenticada (`/app/**`)
+  - Templates separados por grupo de rota.
+  - `middleware.ts` protegendo rotas por cookie JWT.
+- `app/src/components`
+  - Organização por Atomic Design (`atoms`, `molecules`, `organisms`, `templates`, `pages`).
+- `app/src/context` e `app/src/hooks`
+  - Contextos centrais (`auth`, `loader`, `feedback`) e hooks wrappers para uso consistente.
+- `app/src/services`
+  - Camada única de integração HTTP (`api.ts`) e serviços por módulo.
+  - Interceptors para loading global e tratamento de `401`.
+- `app/src/styles` e `app/src/assets/scss`
+  - Tema e paleta centralizados.
+  - Tokens compartilhados para manter consistência visual.
+
+### 12.3 Testes do frontend
+
+Executar:
+
+```bash
+cd app
+npm test
+```
+
+Cobertura inclui:
+
+- hooks, contexts e serviços;
+- middleware e templates de rota;
+- contratos de arquitetura/DRY em `app/test/unit/architecture/patterns.spec.ts`.
