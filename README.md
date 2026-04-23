@@ -201,26 +201,6 @@ Formato de erro HTTP padronizado pelo `HttpExceptionFilter`:
    - `Bearer <accessToken>`
 5. Teste os endpoints protegidos.
 
-### 7.2 Confirmação de funcionalidade Swagger
-
-Validação realizada em `23/04/2026` com a aplicação em execução:
-
-- OpenAPI:
-  - todos os paths esperados presentes;
-  - todos os endpoints protegidos com `security: bearer`;
-  - schemas com tipos corretos (string/uuid/date-time/nullable) para todos os campos dos DTOs.
-- Auth:
-  - login + envio de 2FA;
-  - 2FA inválido retornando `401`;
-  - 2FA válido emitindo JWT `Bearer`.
-- Segurança/validação:
-  - endpoint protegido sem token retornando `401`;
-  - payload inválido retornando `400` com `details` de validação Zod.
-- Smoke funcional de rotas:
-  - `health` e `metrics`: `200`;
-  - `users`: `all` admin/client `200`, create `201`, get `200`, patch `200`, delete `204`, acesso indevido client em recurso de terceiro `403`;
-  - `exams`: create `201`, get `200`, patch `200`, delete `204`, create por client `403`;
-  - `appointments`: create `201`, list/get `200`, patch admin `200`, request-change `200`, approve-change `200`, cancel `200`, delete `204`.
 
 ## 8. Seed de Dados
 
@@ -298,10 +278,5 @@ Hooks Git configurados com Husky:
 - `pre-commit`: `npm test -- --runInBand`
 - `pre-push`: `npm test -- --runInBand`
 
-Objetivo: impedir commit/push sem suíte verde.
 
-## 12. Observações de Segurança
 
-- Não versionar `.env` com credenciais reais.
-- Trocar `JWT_ACCESS_TOKEN_SECRET` em produção.
-- SMTP em produção deve usar credenciais válidas e `from` corporativo.
