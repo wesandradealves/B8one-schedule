@@ -86,6 +86,18 @@ Base: `api/src/domain/commons/constants/profile-permissions.constant.ts`
 - `POST /auth/2fa/verify`
   - Código inválido/expirado retorna `401`.
   - Código válido invalida o registro e gera JWT (`Bearer`).
+- `POST /auth/password-recovery/request`
+  - Recebe e-mail para recuperação.
+  - Não expõe existência de usuário (resposta genérica).
+  - Para usuário ativo, gera código 2FA de recuperação e envia por e-mail.
+- `POST /auth/password-recovery/verify`
+  - Valida código 2FA do fluxo de recuperação.
+  - Código inválido/expirado retorna `401`.
+- `POST /auth/password-recovery/reset`
+  - Exige `email`, `code` e `newPassword`.
+  - Só atualiza senha com código válido de recuperação.
+  - Invalida o código após uso.
+  - Publica evento de finalização do fluxo.
 
 ### 4.2 Users
 
@@ -167,6 +179,9 @@ Formato de erro HTTP padronizado pelo `HttpExceptionFilter`:
 
 - `POST /auth/login`
 - `POST /auth/2fa/verify`
+- `POST /auth/password-recovery/request`
+- `POST /auth/password-recovery/verify`
+- `POST /auth/password-recovery/reset`
 
 ### 6.3 Users
 
@@ -208,6 +223,17 @@ Formato de erro HTTP padronizado pelo `HttpExceptionFilter`:
 4. Clique em **Authorize** no Swagger e informe:
    - `Bearer <accessToken>`
 5. Teste os endpoints protegidos.
+
+### 7.2 Fluxo de recuperação de senha no Swagger
+
+1. Execute `POST /auth/password-recovery/request` com o e-mail.
+2. Pegue o código 2FA de recuperação recebido por e-mail.
+3. Execute `POST /auth/password-recovery/verify` com `email` e `code`.
+4. Após validação, execute `POST /auth/password-recovery/reset` com:
+   - `email`
+   - `code`
+   - `newPassword`
+5. Faça login novamente com a nova senha em `POST /auth/login`.
 
 
 ## 8. Seed de Dados

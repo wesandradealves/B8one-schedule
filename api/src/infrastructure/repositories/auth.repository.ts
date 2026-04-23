@@ -1,4 +1,5 @@
 import { AuthTwoFactorEntity } from '@/domain/entities/auth.two-factor.entity';
+import { AuthTwoFactorPurpose } from '@/domain/commons/enums/auth-two-factor-purpose.enum';
 import { IAuthRepository } from '@/domain/interfaces/repositories/auth.repository';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -11,10 +12,16 @@ export class AuthRepository implements IAuthRepository {
     private readonly repository: Repository<AuthTwoFactorEntity>,
   ) {}
 
-  async upsertTwoFactorCode(userId: string, code: string, expiresAt: Date): Promise<void> {
+  async upsertTwoFactorCode(
+    userId: string,
+    code: string,
+    expiresAt: Date,
+    purpose: AuthTwoFactorPurpose,
+  ): Promise<void> {
     const existing = await this.repository
       .createQueryBuilder('twoFactor')
       .where('twoFactor.userId = :userId', { userId })
+      .andWhere('twoFactor.purpose = :purpose', { purpose })
       .orderBy('twoFactor.createdAt', 'DESC')
       .getOne();
 
@@ -23,7 +30,7 @@ export class AuthRepository implements IAuthRepository {
         .createQueryBuilder()
         .insert()
         .into(AuthTwoFactorEntity)
-        .values({ userId, code, expiresAt, usedAt: null })
+        .values({ userId, code, purpose, expiresAt, usedAt: null })
         .execute();
       return;
     }
@@ -31,7 +38,7 @@ export class AuthRepository implements IAuthRepository {
     await this.repository
       .createQueryBuilder()
       .update(AuthTwoFactorEntity)
-      .set({ code, expiresAt, usedAt: null })
+      .set({ code, purpose, expiresAt, usedAt: null })
       .where('id = :id', { id: existing.id })
       .execute();
   }
@@ -40,11 +47,13 @@ export class AuthRepository implements IAuthRepository {
     userId: string,
     code: string,
     now: Date,
+    purpose: AuthTwoFactorPurpose,
   ): Promise<AuthTwoFactorEntity | null> {
     return this.repository
       .createQueryBuilder('twoFactor')
       .where('twoFactor.userId = :userId', { userId })
       .andWhere('twoFactor.code = :code', { code })
+      .andWhere('twoFactor.purpose = :purpose', { purpose })
       .andWhere('twoFactor.usedAt IS NULL')
       .andWhere('twoFactor.expiresAt > :now', { now: now.toISOString() })
       .orderBy('twoFactor.createdAt', 'DESC')

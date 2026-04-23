@@ -1,5 +1,6 @@
 import { BaseEntity } from '@/domain/entities/commons/base.entity';
 import { UserEntity } from '@/domain/entities/user.entity';
+import { AuthTwoFactorPurpose } from '@/domain/commons/enums/auth-two-factor-purpose.enum';
 import {
   Column,
   Entity,
@@ -14,6 +15,14 @@ export class AuthTwoFactorEntity extends BaseEntity {
 
   @Column({ type: 'varchar', length: 10 })
   code: string;
+
+  @Column({
+    type: 'enum',
+    enum: AuthTwoFactorPurpose,
+    enumName: 'auth_two_factor_purpose_enum',
+    default: AuthTwoFactorPurpose.LOGIN,
+  })
+  purpose: AuthTwoFactorPurpose;
 
   @Column({ name: 'expires_at', type: 'timestamptz' })
   expiresAt: Date;
