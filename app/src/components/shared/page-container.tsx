@@ -5,9 +5,9 @@ export const PageContainer = styled.section.attrs({
 })``;
 
 export const PageTitle = styled.h1.attrs({
-  className: 'text-2xl font-semibold text-white',
+  className: 'text-2xl font-semibold text-slate-900',
 })``;
 
 export const PageDescription = styled.p.attrs({
-  className: 'mt-3 text-sm text-slate-300',
+  className: 'mt-3 text-sm text-slate-600',
 })``;
