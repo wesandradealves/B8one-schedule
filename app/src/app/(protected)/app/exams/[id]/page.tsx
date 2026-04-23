@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: ExamDetailsPageProps): Promis
   return buildSeoMetadata({
     title: `Exame ${id}`,
     description: 'Detalhes do exame para agendamento',
-    path: `/exams/${id}`,
+    path: `/app/exams/${id}`,
   });
 }
 

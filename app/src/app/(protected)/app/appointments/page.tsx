@@ -4,7 +4,7 @@ import { PageContainer, PageDescription, PageTitle } from '@/components/shared/p
 export const metadata = buildSeoMetadata({
   title: 'Agendamentos',
   description: 'Acompanhe os agendamentos do usuário autenticado',
-  path: '/appointments',
+  path: '/app/appointments',
 });
 
 export default function AppointmentsPage() {

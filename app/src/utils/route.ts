@@ -1,14 +1,12 @@
 export const APP_ROUTES = {
+  app: '/app',
   login: '/login',
-  exams: '/exams',
-  examDetails: (id: string) => `/exams/${id}`,
-  appointments: '/appointments',
+  exams: '/app/exams',
+  examDetails: (id: string) => `/app/exams/${id}`,
+  appointments: '/app/appointments',
 } as const;
 
-export const PROTECTED_ROUTE_PREFIXES = [
-  APP_ROUTES.exams,
-  APP_ROUTES.appointments,
-] as const;
+export const PROTECTED_ROUTE_PREFIXES = [APP_ROUTES.app] as const;
 
 export const isProtectedPath = (pathname: string): boolean => {
   return PROTECTED_ROUTE_PREFIXES.some((prefix) => {

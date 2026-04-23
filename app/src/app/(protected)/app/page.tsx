@@ -2,17 +2,17 @@ import { buildSeoMetadata } from '@/utils/seo';
 import { PageContainer, PageDescription, PageTitle } from '@/components/shared/page-container';
 
 export const metadata = buildSeoMetadata({
-  title: 'Exames',
-  description: 'Listagem de exames disponíveis',
-  path: '/exams',
+  title: 'Aplicação',
+  description: 'Área autenticada da aplicação',
+  path: '/app',
 });
 
-export default function ExamsPage() {
+export default function AppHomePage() {
   return (
     <PageContainer>
-      <PageTitle>Exames</PageTitle>
+      <PageTitle>Área autenticada</PageTitle>
       <PageDescription>
-        Estrutura base pronta para busca, paginação e integração com React Query.
+        Use /app/exams e /app/appointments para navegar pelos módulos protegidos.
       </PageDescription>
     </PageContainer>
   );
