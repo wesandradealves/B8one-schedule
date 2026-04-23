@@ -1,0 +1,16 @@
+.git
+.gitignore
+.husky
+*.zip
+node_modules
+dist
+*.tsbuildinfo
+api/node_modules
+api/dist
+api/coverage
+api/*.tsbuildinfo
+api/.env
+api/.env.*
+!api/.env.example
+npm-debug.log
+.env
