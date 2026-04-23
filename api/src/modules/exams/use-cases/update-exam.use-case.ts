@@ -1,3 +1,5 @@
+import { bumpExamsListCacheVersion } from '@/domain/commons/utils/exam-cache.util';
+import { ICacheProvider } from '@/domain/interfaces/providers/cache.provider';
 import { IExamRepository } from '@/domain/interfaces/repositories/exam.repository';
 import { assertAdmin } from '@/domain/commons/utils/profile-authorization.util';
 import {
@@ -17,6 +19,8 @@ export class UpdateExamUseCase implements IUpdateExamUseCase {
   constructor(
     @Inject(IExamRepository)
     private readonly examRepository: IExamRepository,
+    @Inject(ICacheProvider)
+    private readonly cacheProvider: ICacheProvider,
     @Inject(IMessagingProvider)
     private readonly messagingProvider: IMessagingProvider,
   ) {}
@@ -42,6 +46,8 @@ export class UpdateExamUseCase implements IUpdateExamUseCase {
     if (!updated) {
       throw new NotFoundException('Exam not found');
     }
+
+    await bumpExamsListCacheVersion(this.cacheProvider);
 
     await this.messagingProvider.publish('exams.updated', {
       examId: updated.id,

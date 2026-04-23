@@ -1,5 +1,11 @@
+import {
+  buildExamsListCacheKey,
+  EXAMS_LIST_CACHE_TTL_SECONDS,
+  getExamsListCacheVersion,
+} from '@/domain/commons/utils/exam-cache.util';
 import { isAdmin } from '@/domain/commons/utils/profile-authorization.util';
 import { PaginationQuery } from '@/domain/commons/interfaces/pagination.interface';
+import { ICacheProvider } from '@/domain/interfaces/providers/cache.provider';
 import { IExamRepository } from '@/domain/interfaces/repositories/exam.repository';
 import { IListAllExamsUseCase } from '@/domain/interfaces/use-cases/exams/list-all-exams.use-case';
 import { AuthenticatedUser } from '@/domain/types/authenticated-user.type';
@@ -10,13 +16,29 @@ export class ListAllExamsUseCase implements IListAllExamsUseCase {
   constructor(
     @Inject(IExamRepository)
     private readonly examRepository: IExamRepository,
+    @Inject(ICacheProvider)
+    private readonly cacheProvider: ICacheProvider,
   ) {}
 
   async execute(user: AuthenticatedUser, pagination: PaginationQuery) {
-    if (isAdmin(user)) {
-      return this.examRepository.listAll(pagination);
+    const scope = isAdmin(user) ? 'all' : 'active';
+    const cacheVersion = await getExamsListCacheVersion(this.cacheProvider);
+    const cacheKey = buildExamsListCacheKey(cacheVersion, scope, pagination);
+
+    const cachedResult = await this.cacheProvider.get<Awaited<ReturnType<IExamRepository['listAll']>>>(
+      cacheKey,
+    );
+
+    if (cachedResult) {
+      return cachedResult;
     }
 
-    return this.examRepository.listActive(pagination);
+    const result = scope === 'all'
+      ? await this.examRepository.listAll(pagination)
+      : await this.examRepository.listActive(pagination);
+
+    await this.cacheProvider.set(cacheKey, result, EXAMS_LIST_CACHE_TTL_SECONDS);
+
+    return result;
   }
 }
