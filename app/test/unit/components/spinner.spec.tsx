@@ -17,6 +17,9 @@ describe('Spinner', () => {
   it('should render overlay when loading is true', () => {
     useLoaderMock.mockReturnValue({ isLoading: true });
     render(<Spinner />);
-    expect(screen.getByRole('status', { name: 'Carregando' })).toBeInTheDocument();
+    const spinnerOverlay = screen.getByRole('status', { name: 'Carregando' });
+    expect(spinnerOverlay).toBeInTheDocument();
+    expect(screen.queryByText('ExamPoint')).not.toBeInTheDocument();
+    expect(spinnerOverlay.querySelector('svg')).not.toBeNull();
   });
 });

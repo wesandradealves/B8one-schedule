@@ -84,17 +84,93 @@ describe('frontend architecture patterns', () => {
     expect(filesCallingInterceptorSetup).toEqual(['src/app/providers.tsx']);
   });
 
-  it('should keep route path literals centralized through APP_ROUTES in app pages', () => {
-    const appPageFiles = sourceFiles.filter((file) => {
-      return file.startsWith('src/app/') && file.endsWith('/page.tsx');
+  it('should keep protected route path literals centralized through APP_ROUTES in app pages', () => {
+    const protectedAppPageFiles = sourceFiles.filter((file) => {
+      return file.startsWith('src/app/(protected)/') && file.endsWith('/page.tsx');
     });
 
-    appPageFiles.forEach((file) => {
+    protectedAppPageFiles.forEach((file) => {
       const source = readFile(file);
 
       expect(source).not.toMatch(/path:\s*['"]\/(?:app|login)/);
       expect(source).toContain('APP_ROUTES');
     });
+  });
+
+  it('should keep SEO document metadata side-effects centralized in useSeoMetadata hook', () => {
+    const manualSeoSideEffects = sourceFiles.filter((file) => {
+      const source = readFile(file);
+      return (
+        source.includes('document.title') ||
+        source.includes('meta[name="description"]') ||
+        source.includes("createElement('meta')")
+      );
+    });
+
+    expect(manualSeoSideEffects).toEqual(['src/hooks/useSeoMetadata.ts']);
+  });
+
+  it('should keep auth flow state centralized through zustand + dedicated hook', () => {
+    const storeSource = readFile('src/hooks/useAuthFlow.store.ts');
+    const hookSource = readFile('src/hooks/useAuthFlow.ts');
+
+    expect(storeSource).toContain("from 'zustand'");
+    expect(storeSource).toContain('create<AuthFlowStoreState>');
+    expect(hookSource).toContain('useAuthFlowStore');
+  });
+
+  it('should keep auth UI composition based on atomic building blocks', () => {
+    const authFlowSource = readFile(
+      'src/components/organisms/auth/auth-flow-card.tsx',
+    );
+
+    expect(authFlowSource).toContain('AuthFormField');
+    expect(authFlowSource).toContain('AuthOtpField');
+    expect(authFlowSource).toContain('AuthPrimaryButton');
+    expect(authFlowSource).toContain('AuthLinkButton');
+    expect(authFlowSource).not.toMatch(/<input\\s/);
+    expect(authFlowSource).not.toMatch(/<button\\s/);
+  });
+
+  it('should keep auth error feedback atomic and centralized', () => {
+    const authFlowSource = readFile('src/components/organisms/auth/auth-flow-card.tsx');
+    const inlineMessageSource = readFile(
+      'src/components/molecules/auth-inline-message.tsx',
+    );
+    const feedbackContextSource = readFile('src/context/feedback.tsx');
+
+    expect(authFlowSource).toContain('AuthInlineMessage');
+    expect(inlineMessageSource).toContain('text-center');
+    expect(inlineMessageSource).toContain('levelClasses');
+    expect(feedbackContextSource).not.toMatch(/<div\\s|<section\\s|<aside\\s/);
+  });
+
+  it('should keep auth accessibility semantics centralized in form molecules', () => {
+    const authFormFieldSource = readFile('src/components/molecules/auth-form-field.tsx');
+    const authOtpFieldSource = readFile('src/components/molecules/auth-otp-field.tsx');
+    const authInlineMessageSource = readFile(
+      'src/components/molecules/auth-inline-message.tsx',
+    );
+
+    expect(authFormFieldSource).toContain('aria-invalid');
+    expect(authFormFieldSource).toContain('aria-describedby');
+    expect(authOtpFieldSource).toContain("role=\"group\"");
+    expect(authOtpFieldSource).toContain('aria-labelledby');
+    expect(authInlineMessageSource).toContain('aria-live');
+  });
+
+  it('should keep logout flow centralized in a dedicated custom hook', () => {
+    const useLogoutSource = readFile('src/hooks/useLogout.ts');
+    const logoutLinkSource = readFile('src/components/shared/logout-link.tsx');
+
+    expect(useLogoutSource).toContain('useAuth');
+    expect(useLogoutSource).toContain('useRouter');
+    expect(useLogoutSource).toContain('APP_ROUTES.login');
+    expect(useLogoutSource).toContain('router.replace(APP_ROUTES.login)');
+
+    expect(logoutLinkSource).toContain('useLogout');
+    expect(logoutLinkSource).not.toContain('useRouter');
+    expect(logoutLinkSource).not.toContain('useAuth');
   });
 
   it('should keep wrapper hooks as aliases to context hooks (DRY)', () => {

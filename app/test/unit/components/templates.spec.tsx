@@ -11,6 +11,11 @@ describe('route templates', () => {
     );
 
     expect(screen.getByText('public-content')).toBeInTheDocument();
+    expect(screen.getByText('Feito com')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Wesley Alves' })).toHaveAttribute(
+      'href',
+      'https://github.com/wesandradealves',
+    );
   });
 
   it('should render protected template content', () => {

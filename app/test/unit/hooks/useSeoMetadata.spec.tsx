@@ -3,10 +3,19 @@ import { useSeoMetadata } from '@/hooks/useSeoMetadata';
 import { buildSeoMetadata } from '@/utils/seo';
 
 jest.mock('@/utils/seo', () => ({
-  buildSeoMetadata: jest.fn(() => ({ title: 'mocked' })),
+  buildSeoMetadata: jest.fn(() => ({
+    title: 'mocked',
+    description: 'meta description',
+  })),
 }));
 
 describe('useSeoMetadata', () => {
+  beforeEach(() => {
+    document.title = 'Initial';
+    document.querySelector('meta[name=\"description\"]')?.remove();
+    jest.clearAllMocks();
+  });
+
   it('should delegate to buildSeoMetadata with stable contract', () => {
     const input = {
       title: 'Exames',
@@ -18,6 +27,15 @@ describe('useSeoMetadata', () => {
     const { result } = renderHook(() => useSeoMetadata(input));
 
     expect(buildSeoMetadata).toHaveBeenCalledWith(input);
-    expect(result.current).toEqual({ title: 'mocked' });
+    expect(result.current).toEqual({
+      title: 'mocked',
+      description: 'meta description',
+    });
+    expect(document.title).toBe('mocked');
+    expect(
+      document
+        .querySelector('meta[name=\"description\"]')
+        ?.getAttribute('content'),
+    ).toBe('meta description');
   });
 });

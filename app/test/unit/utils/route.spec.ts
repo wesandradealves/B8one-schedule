@@ -1,4 +1,10 @@
-import { APP_ROUTES, isProtectedPath, PROTECTED_ROUTE_PREFIXES } from '@/utils/route';
+import {
+  APP_ROUTES,
+  isAppRoute,
+  isProtectedPath,
+  PROTECTED_ROUTE_PREFIXES,
+  resolvePostLoginRoute,
+} from '@/utils/route';
 
 describe('route utils', () => {
   it('should expose the expected app route prefixes', () => {
@@ -19,5 +25,20 @@ describe('route utils', () => {
     expect(isProtectedPath('/app/exams/123')).toBe(true);
     expect(isProtectedPath('/login')).toBe(false);
     expect(isProtectedPath('/')).toBe(false);
+  });
+
+  it('should validate app routes for safe post-login redirects', () => {
+    expect(isAppRoute('/app')).toBe(true);
+    expect(isAppRoute('/app/exams')).toBe(true);
+    expect(isAppRoute('/login')).toBe(false);
+    expect(isAppRoute('https://malicious.example')).toBe(false);
+    expect(isAppRoute('//malicious.example')).toBe(false);
+  });
+
+  it('should resolve post-login route to app default when invalid', () => {
+    expect(resolvePostLoginRoute('/app/exams')).toBe('/app/exams');
+    expect(resolvePostLoginRoute('/login')).toBe('/app');
+    expect(resolvePostLoginRoute('https://malicious.example')).toBe('/app');
+    expect(resolvePostLoginRoute(null)).toBe('/app');
   });
 });
