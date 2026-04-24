@@ -445,6 +445,12 @@ Arquivo: `api/src/infrastructure/database/seeds/run-seed.ts`
   - e-mail: `cliente@b8one.com`
   - senha: `Client@123`
   - perfil: `CLIENT`
+- Cliente (teste SMTP/Ethereal)
+  - e-mail: `cortney.reichel43@ethereal.email`
+  - senha: `teste123`
+  - perfil: `CLIENT`
+  - inbox para OTP/2FA: `https://ethereal.email/`
+  - observação: use as credenciais SMTP configuradas no `.env` da raiz para entrar no painel da inbox de teste.
 
 ### 8.2 Exames padrão
 
@@ -635,11 +641,23 @@ Cobertura inclui:
 - middleware e templates de rota;
 - contratos de arquitetura/DRY em `app/test/unit/architecture/patterns.spec.ts`.
 
+### 12.4 Acessibilidade (Frontend)
+
+Implementações aplicadas e validadas no fluxo de autenticação:
+
+- `lang="pt-BR"` no documento.
+- Campos com `label` associado e `aria-invalid`/`aria-describedby` para erros.
+- Mensagens inline de feedback com região ARIA:
+  - `role="alert"` + `aria-live="assertive"` para erro.
+  - `role="status"` + `aria-live="polite"` para info/sucesso.
+- OTP segmentado com grupo semântico:
+  - `role="group"` + `aria-labelledby` do rótulo.
+  - `aria-label` por dígito e `aria-describedby` para countdown/erro.
+- OTP com navegação por teclado (`ArrowLeft`, `ArrowRight`, `Backspace`) e suporte a `paste`.
+- Botões com estado de carregamento usando `aria-busy`.
+- Loader global com `role="status"` e `aria-live="polite"`.
+
 ## 13. Validação Executada (Backend)
-
-Validação executada em 23/04/2026 com backend em container atualizado (`docker compose up -d --build backend`).
-
-### 13.1 Quality gates
 
 Executado em `api/`:
 
