@@ -18,6 +18,11 @@ jest.mock('@/components/organisms/auth/auth-flow-card', () => ({
   AuthFlowCard: () => <div>auth-flow-card</div>,
 }));
 
+jest.mock('@/components/organisms/protected/my-account-form', () => ({
+  __esModule: true,
+  MyAccountForm: () => <div>my-account-form</div>,
+}));
+
 jest.mock('@/hooks/useAuth', () => ({
   __esModule: true,
   useAuth: () => ({
@@ -65,7 +70,7 @@ describe('app pages and route-group templates', () => {
     expect(screen.getByText('Usuários')).toBeInTheDocument();
 
     render(<MyAccountPage />);
-    expect(screen.getByText('Minha conta')).toBeInTheDocument();
+    expect(screen.getByText('my-account-form')).toBeInTheDocument();
   });
 
   it('should render dynamic exam page and metadata', async () => {

@@ -51,6 +51,7 @@ describe('frontend architecture patterns', () => {
       'src/services/auth.service.ts',
       'src/services/exams.service.ts',
       'src/services/appointments.service.ts',
+      'src/services/users.service.ts',
     ];
 
     serviceFiles.forEach((serviceFile) => {
