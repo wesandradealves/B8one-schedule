@@ -445,6 +445,12 @@ Arquivo: `api/src/infrastructure/database/seeds/run-seed.ts`
   - e-mail: `cliente@b8one.com`
   - senha: `Client@123`
   - perfil: `CLIENT`
+- Cliente (teste SMTP/Ethereal)
+  - e-mail: `cortney.reichel43@ethereal.email`
+  - senha: `teste123`
+  - perfil: `CLIENT`
+  - inbox para OTP/2FA: `https://ethereal.email/`
+  - observação: use as credenciais SMTP configuradas no `.env` da raiz para entrar no painel da inbox de teste.
 
 ### 8.2 Exames padrão
 
@@ -635,11 +641,23 @@ Cobertura inclui:
 - middleware e templates de rota;
 - contratos de arquitetura/DRY em `app/test/unit/architecture/patterns.spec.ts`.
 
+### 12.4 Acessibilidade (Frontend)
+
+Implementações aplicadas e validadas no fluxo de autenticação:
+
+- `lang="pt-BR"` no documento.
+- Campos com `label` associado e `aria-invalid`/`aria-describedby` para erros.
+- Mensagens inline de feedback com região ARIA:
+  - `role="alert"` + `aria-live="assertive"` para erro.
+  - `role="status"` + `aria-live="polite"` para info/sucesso.
+- OTP segmentado com grupo semântico:
+  - `role="group"` + `aria-labelledby` do rótulo.
+  - `aria-label` por dígito e `aria-describedby` para countdown/erro.
+- OTP com navegação por teclado (`ArrowLeft`, `ArrowRight`, `Backspace`) e suporte a `paste`.
+- Botões com estado de carregamento usando `aria-busy`.
+- Loader global com `role="status"` e `aria-live="polite"`.
+
 ## 13. Validação Executada (Backend)
-
-Validação executada em 23/04/2026 com backend em container atualizado (`docker compose up -d --build backend`).
-
-### 13.1 Quality gates
 
 Executado em `api/`:
 
@@ -660,18 +678,3 @@ Fluxo validado ponta a ponta com autenticação JWT + 2FA:
 - `Exams`: `GET /exams/all`, `POST /exams`, `PATCH /exams/:id`, `GET /exams/:id`, `DELETE /exams/:id`, com validação de bloqueio de client em ações de admin.
 - `Appointments`: `POST /appointments` (incluindo validação de data inválida), `GET /appointments/all`, `PATCH /appointments/:id/request-change`, `PATCH /appointments/:id/approve-change`, `PATCH /appointments/:id/cancel`, `PATCH /appointments/:id`, `DELETE /appointments/:id`, com validação de bloqueio por perfil/permissão.
 - `CSV (admin only)`: `POST /users/import/csv`, `GET /users/export/csv`, `POST /exams/import/csv`, `GET /exams/export/csv`, `POST /appointments/import/csv`, `GET /appointments/export/csv`; também validado retorno `403` para usuário client.
-
-### 13.3 Swagger
-
-Validado via `GET /docs-json`:
-
-- endpoints do fluxo acima presentes;
-- endpoints protegidos com `security` bearer;
-- requestBody/DTOs dos fluxos CSV e recuperação de senha documentados.
-
-### 13.4 Checagens de padrão arquitetural
-
-- Sem SQL raw em módulos/repositories (`.query(` não encontrado em `api/src/modules` e `api/src/infrastructure/repositories`).
-- `nodemailer` restrito ao provider SMTP (`infrastructure/providers/email/smtp`).
-- `bullmq` restrito ao provider/processor de mensageria (`infrastructure/providers/messaging/bullmq`).
-- Use cases sem publicação de evento são apenas os de leitura (`list/get` de `users`, `exams`, `appointments`).

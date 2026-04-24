@@ -6,6 +6,7 @@ export interface LoginUseCaseInput {
 export interface LoginUseCaseOutput {
   requiresTwoFactor: true;
   message: string;
+  twoFactorExpiresInSeconds: number;
 }
 
 export interface ILoginUseCase {

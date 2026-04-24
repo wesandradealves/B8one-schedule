@@ -85,6 +85,7 @@ describe('RequestPasswordRecoveryUseCase', () => {
     expect(output).toEqual({
       requiresTwoFactor: true,
       message: 'If the e-mail exists, a verification code was sent.',
+      twoFactorExpiresInSeconds: 600,
     });
 
     expect(authRepository.upsertTwoFactorCode).not.toHaveBeenCalled();
@@ -109,6 +110,7 @@ describe('RequestPasswordRecoveryUseCase', () => {
     expect(output).toEqual({
       requiresTwoFactor: true,
       message: 'If the e-mail exists, a verification code was sent.',
+      twoFactorExpiresInSeconds: 600,
     });
 
     expect(authRepository.upsertTwoFactorCode).not.toHaveBeenCalled();
@@ -138,6 +140,7 @@ describe('RequestPasswordRecoveryUseCase', () => {
     expect(output).toEqual({
       requiresTwoFactor: true,
       message: 'If the e-mail exists, a verification code was sent.',
+      twoFactorExpiresInSeconds: 600,
     });
 
     expect(authRepository.upsertTwoFactorCode).toHaveBeenCalledWith(
@@ -164,4 +167,3 @@ describe('RequestPasswordRecoveryUseCase', () => {
     );
   });
 });
-

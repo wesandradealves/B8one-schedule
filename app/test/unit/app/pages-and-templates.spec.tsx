@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import LoginPage, { metadata as loginMetadata } from '@/app/(public)/login/page';
+import LoginPage from '@/app/(public)/login/page';
 import AppPage, { metadata as appMetadata } from '@/app/(protected)/app/page';
 import ExamsPage, { metadata as examsMetadata } from '@/app/(protected)/app/exams/page';
 import AppointmentsPage, {
@@ -9,9 +9,18 @@ import ExamDetailsPage, { generateMetadata } from '@/app/(protected)/app/exams/[
 import PublicTemplate from '@/app/(public)/template';
 import ProtectedTemplate from '@/app/(protected)/template';
 
+jest.mock('@/components/organisms/auth/auth-flow-card', () => ({
+  __esModule: true,
+  AuthFlowCard: () => <div>auth-flow-card</div>,
+}));
+
+jest.mock('@/components/shared/logout-link', () => ({
+  __esModule: true,
+  LogoutLink: () => <button type="button">Sair da conta</button>,
+}));
+
 describe('app pages and route-group templates', () => {
-  it('should expose metadata for static pages with app route paths', () => {
-    expect(loginMetadata.alternates?.canonical).toBe('/login');
+  it('should expose metadata for protected static pages with app route paths', () => {
     expect(appMetadata.alternates?.canonical).toBe('/app');
     expect(examsMetadata.alternates?.canonical).toBe('/app/exams');
     expect(appointmentsMetadata.alternates?.canonical).toBe('/app/appointments');
@@ -19,10 +28,11 @@ describe('app pages and route-group templates', () => {
 
   it('should render static pages', () => {
     render(<LoginPage />);
-    expect(screen.getByText('Login')).toBeInTheDocument();
+    expect(screen.getByText('auth-flow-card')).toBeInTheDocument();
 
     render(<AppPage />);
     expect(screen.getByText('Área autenticada')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Sair da conta' }).length).toBeGreaterThan(0);
 
     render(<ExamsPage />);
     expect(screen.getByText('Exames')).toBeInTheDocument();

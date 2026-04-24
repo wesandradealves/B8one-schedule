@@ -5,6 +5,7 @@ export interface RequestPasswordRecoveryUseCaseInput {
 export interface RequestPasswordRecoveryUseCaseOutput {
   requiresTwoFactor: true;
   message: string;
+  twoFactorExpiresInSeconds: number;
 }
 
 export interface IRequestPasswordRecoveryUseCase {
@@ -16,4 +17,3 @@ export interface IRequestPasswordRecoveryUseCase {
 export const IRequestPasswordRecoveryUseCase = Symbol(
   'IRequestPasswordRecoveryUseCase',
 );
-

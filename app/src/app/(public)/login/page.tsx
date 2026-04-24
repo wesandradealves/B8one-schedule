@@ -1,20 +1,10 @@
-import { buildSeoMetadata } from '@/utils/seo';
-import { PageContainer, PageDescription, PageTitle } from '@/components/shared/page-container';
-import { APP_ROUTES } from '@/utils/route';
-
-export const metadata = buildSeoMetadata({
-  title: 'Login',
-  description: 'Acesse o portal de agendamento',
-  path: APP_ROUTES.login,
-});
+import { Suspense } from 'react';
+import { AuthFlowCard } from '@/components/organisms/auth/auth-flow-card';
 
 export default function LoginPage() {
   return (
-    <PageContainer>
-      <PageTitle>Login</PageTitle>
-      <PageDescription>
-        Base de autenticação pronta para integração com o fluxo de login + 2FA.
-      </PageDescription>
-    </PageContainer>
+    <Suspense fallback={<div className="py-12 text-center text-sm text-slate-500">Carregando autenticacao...</div>}>
+      <AuthFlowCard />
+    </Suspense>
   );
 }

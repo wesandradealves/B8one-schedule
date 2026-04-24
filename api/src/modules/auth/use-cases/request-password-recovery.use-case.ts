@@ -32,10 +32,16 @@ export class RequestPasswordRecoveryUseCase
   async execute(
     input: RequestPasswordRecoveryUseCaseInput,
   ): Promise<RequestPasswordRecoveryUseCaseOutput> {
+    const expirationMinutes = this.configService.get<number>(
+      'auth.twoFactor.expirationMinutes',
+      10,
+    );
+    const twoFactorExpiresInSeconds = expirationMinutes * 60;
     const user = await this.userRepository.findByEmail(input.email);
     const genericOutput: RequestPasswordRecoveryUseCaseOutput = {
       requiresTwoFactor: true,
       message: 'If the e-mail exists, a verification code was sent.',
+      twoFactorExpiresInSeconds,
     };
 
     if (!user || !user.isActive) {
@@ -43,10 +49,6 @@ export class RequestPasswordRecoveryUseCase
     }
 
     const code = this.generateCode();
-    const expirationMinutes = this.configService.get<number>(
-      'auth.twoFactor.expirationMinutes',
-      10,
-    );
     const smtpHost = this.configService.get<string>('email.smtp.host');
     const appEnv = this.configService.get<string>('env');
     const expiresAt = new Date(Date.now() + expirationMinutes * 60 * 1000);
@@ -83,4 +85,3 @@ export class RequestPasswordRecoveryUseCase
     return `${Math.floor(100000 + Math.random() * 900000)}`;
   }
 }
-

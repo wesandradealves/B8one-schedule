@@ -130,6 +130,7 @@ describe('LoginUseCase', () => {
     expect(output).toEqual({
       requiresTwoFactor: true,
       message: '2FA code sent to your e-mail.',
+      twoFactorExpiresInSeconds: 600,
     });
 
     expect(authRepository.upsertTwoFactorCode).toHaveBeenCalledWith(
@@ -180,6 +181,7 @@ describe('LoginUseCase', () => {
     ).resolves.toEqual({
       requiresTwoFactor: true,
       message: '2FA code sent to your e-mail.',
+      twoFactorExpiresInSeconds: 600,
     });
 
     expect(authRepository.upsertTwoFactorCode).toHaveBeenCalled();

@@ -1,7 +1,13 @@
 'use client';
 
 import { useLoader } from '@/hooks/useLoader';
-import { Dot, Overlay } from '@/components/spinner/styles';
+import { AuthBrandLogo } from '@/components/atoms/auth-brand-logo';
+import {
+  Overlay,
+  SpinnerLogoSlot,
+  SpinnerRing,
+  SpinnerShell,
+} from '@/components/spinner/styles';
 
 export default function Spinner() {
   const { isLoading } = useLoader();
@@ -12,7 +18,12 @@ export default function Spinner() {
 
   return (
     <Overlay role="status" aria-live="polite" aria-label="Carregando">
-      <Dot />
+      <SpinnerShell>
+        <SpinnerRing />
+        <SpinnerLogoSlot>
+          <AuthBrandLogo tone="white" size="md" iconOnly />
+        </SpinnerLogoSlot>
+      </SpinnerShell>
     </Overlay>
   );
 }

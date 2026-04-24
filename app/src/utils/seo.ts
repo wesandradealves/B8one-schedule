@@ -20,7 +20,7 @@ export const buildSeoMetadata = ({
   const pageDescription = description ?? 'Portal de agendamento de exames';
 
   return {
-    title,
+    title: pageTitle,
     description: pageDescription,
     metadataBase: new URL(env.APP_BASE_URL),
     alternates: {

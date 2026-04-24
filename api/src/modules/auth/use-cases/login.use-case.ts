@@ -52,6 +52,7 @@ export class LoginUseCase implements ILoginUseCase {
       'auth.twoFactor.expirationMinutes',
       10,
     );
+    const twoFactorExpiresInSeconds = expirationMinutes * 60;
     const smtpHost = this.configService.get<string>('email.smtp.host');
     const appEnv = this.configService.get<string>('env');
 
@@ -83,6 +84,7 @@ export class LoginUseCase implements ILoginUseCase {
     return {
       requiresTwoFactor: true,
       message: '2FA code sent to your e-mail.',
+      twoFactorExpiresInSeconds,
     };
   }
 
