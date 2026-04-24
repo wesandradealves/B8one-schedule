@@ -6,6 +6,8 @@ import { IDeleteUserUseCase } from '@/domain/interfaces/use-cases/users/delete-u
 import { IGetUserByIdUseCase } from '@/domain/interfaces/use-cases/users/get-user-by-id.use-case';
 import { IListUsersUseCase } from '@/domain/interfaces/use-cases/users/list-users.use-case';
 import { IUpdateUserUseCase } from '@/domain/interfaces/use-cases/users/update-user.use-case';
+import { IImportUsersCsvUseCase } from '@/domain/interfaces/use-cases/users/import-users-csv.use-case';
+import { IExportUsersCsvUseCase } from '@/domain/interfaces/use-cases/users/export-users-csv.use-case';
 import { AuthenticatedUser } from '@/domain/types/authenticated-user.type';
 import { CurrentUser } from '@/infrastructure/http/decorators/current-user.decorator';
 import { Permissions } from '@/infrastructure/http/decorators/permissions.decorator';
@@ -40,10 +42,17 @@ import { CreateUserRequestDto } from '../dto/create-user.request.dto';
 import { ListUsersResponseDto } from '../dto/list-users.response.dto';
 import { UpdateUserRequestDto } from '../dto/update-user.request.dto';
 import { UserResponseDto } from '../dto/user.response.dto';
+import { CsvImportRequestDto } from '@/modules/shared/dto/csv-import.request.dto';
+import { CsvImportResponseDto } from '@/modules/shared/dto/csv-import.response.dto';
+import { CsvExportResponseDto } from '@/modules/shared/dto/csv-export.response.dto';
 import {
   PaginationQuerySchemaType,
   paginationQuerySchema,
 } from '@/modules/shared/utils/pagination-query.schema';
+import {
+  CsvImportSchemaType,
+  csvImportSchema,
+} from '@/modules/shared/utils/csv-import.schema';
 import { createUserSchema } from '../schemas/create-user.schema';
 import { updateUserSchema } from '../schemas/update-user.schema';
 import { userIdParamSchema } from '../schemas/user-id-param.schema';
@@ -65,6 +74,10 @@ export class UsersController {
     private readonly updateUserUseCase: IUpdateUserUseCase,
     @Inject(IDeleteUserUseCase)
     private readonly deleteUserUseCase: IDeleteUserUseCase,
+    @Inject(IImportUsersCsvUseCase)
+    private readonly importUsersCsvUseCase: IImportUsersCsvUseCase,
+    @Inject(IExportUsersCsvUseCase)
+    private readonly exportUsersCsvUseCase: IExportUsersCsvUseCase,
   ) {}
 
   @Get('all')
@@ -107,6 +120,32 @@ export class UsersController {
       ...payload,
     });
     return this.toResponse(createdUser);
+  }
+
+  @Post('import/csv')
+  @Permissions(Permission.USERS_IMPORT_CSV)
+  @ApiOperation({ summary: 'Import users from CSV (admin only)' })
+  @ApiBody({ type: CsvImportRequestDto })
+  @ApiResponse({ status: 200, type: CsvImportResponseDto })
+  async importCsv(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body(new ZodValidationPipe(csvImportSchema))
+    payload: CsvImportSchemaType,
+  ): Promise<CsvImportResponseDto> {
+    return this.importUsersCsvUseCase.execute({
+      user,
+      csvContent: payload.csvContent,
+    });
+  }
+
+  @Get('export/csv')
+  @Permissions(Permission.USERS_EXPORT_CSV)
+  @ApiOperation({ summary: 'Export users to CSV (admin only)' })
+  @ApiResponse({ status: 200, type: CsvExportResponseDto })
+  async exportCsv(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<CsvExportResponseDto> {
+    return this.exportUsersCsvUseCase.execute({ user });
   }
 
   @Get(':id')
