@@ -1,6 +1,6 @@
 import { buildSeoMetadata } from '@/utils/seo';
-import { PageContainer, PageDescription, PageTitle } from '@/components/shared/page-container';
 import { APP_ROUTES } from '@/utils/route';
+import { UsersListSection } from '@/components/organisms/protected/users-list-section';
 
 export const metadata = buildSeoMetadata({
   title: 'Usuários',
@@ -9,10 +9,5 @@ export const metadata = buildSeoMetadata({
 });
 
 export default function UsersPage() {
-  return (
-    <PageContainer>
-      <PageTitle>Usuários</PageTitle>
-      <PageDescription>Conteúdo em construção.</PageDescription>
-    </PageContainer>
-  );
+  return <UsersListSection />;
 }

@@ -1,6 +1,6 @@
 import { buildSeoMetadata } from '@/utils/seo';
-import { PageContainer, PageDescription, PageTitle } from '@/components/shared/page-container';
 import { APP_ROUTES } from '@/utils/route';
+import { ExamsListSection } from '@/components/organisms/protected/exams-list-section';
 
 export const metadata = buildSeoMetadata({
   title: 'Exames',
@@ -9,10 +9,5 @@ export const metadata = buildSeoMetadata({
 });
 
 export default function ExamsPage() {
-  return (
-    <PageContainer>
-      <PageTitle>Exames</PageTitle>
-      <PageDescription>Conteúdo em construção.</PageDescription>
-    </PageContainer>
-  );
+  return <ExamsListSection />;
 }

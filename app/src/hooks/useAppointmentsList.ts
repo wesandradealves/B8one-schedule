@@ -1,0 +1,260 @@
+'use client';
+
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFeedback } from '@/hooks/useFeedback';
+import { useRolePermissions } from '@/hooks/useRolePermissions';
+import {
+  cancelAppointmentById,
+  deleteAppointmentById,
+  listAppointments,
+  updateAppointmentById,
+} from '@/services/appointments.service';
+import type { PaginatedResult, SortOrder } from '@/types/api';
+import type { Appointment, AppointmentStatus } from '@/types/appointment';
+import { getRequestErrorMessage } from '@/utils/request';
+import { toDateTimeLocalValue } from '@/utils/format';
+
+const PAGE_SIZE = 8;
+
+const createInitialPaginatedResult = (): PaginatedResult<Appointment> => ({
+  data: [],
+  page: 1,
+  limit: PAGE_SIZE,
+  total: 0,
+  totalPages: 0,
+});
+
+interface AppointmentEditFormState {
+  scheduledAt: string;
+  notes: string;
+  status: AppointmentStatus;
+}
+
+const createAppointmentEditFormState = (
+  appointment: Appointment,
+): AppointmentEditFormState => ({
+  scheduledAt: toDateTimeLocalValue(appointment.scheduledAt),
+  notes: appointment.notes ?? '',
+  status: appointment.status === 'CANCELLED' ? 'CANCELLED' : 'SCHEDULED',
+});
+
+export const useAppointmentsList = () => {
+  const { canManageAppointments, canCancelAppointments } = useRolePermissions();
+  const { publish } = useFeedback();
+
+  const [result, setResult] = useState<PaginatedResult<Appointment>>(() =>
+    createInitialPaginatedResult(),
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [scheduledDateFilter, setScheduledDateFilter] = useState('');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('DESC');
+  const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<AppointmentEditFormState | null>(null);
+
+  const fetchAppointments = useCallback(
+    async (page: number, nextSortOrder: SortOrder, scheduledDate?: string) => {
+      setIsLoading(true);
+
+      try {
+        const listResult = await listAppointments({
+          page,
+          limit: PAGE_SIZE,
+          sortOrder: nextSortOrder,
+          scheduledDate: scheduledDate || undefined,
+        });
+        setResult(listResult);
+      } catch (error) {
+        publish('error', getRequestErrorMessage(error));
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [publish],
+  );
+
+  useEffect(() => {
+    void fetchAppointments(result.page, sortOrder, scheduledDateFilter);
+  }, [fetchAppointments, result.page, scheduledDateFilter, sortOrder]);
+
+  const setPage = useCallback((nextPage: number) => {
+    setResult((currentState) => ({
+      ...currentState,
+      page: nextPage,
+    }));
+  }, []);
+
+  const updateScheduledDateFilter = useCallback((value: string) => {
+    setScheduledDateFilter(value);
+    setResult((currentState) => ({
+      ...currentState,
+      page: 1,
+    }));
+  }, []);
+
+  const updateSortOrder = useCallback((nextSortOrder: SortOrder) => {
+    setSortOrder(nextSortOrder);
+    setResult((currentState) => ({
+      ...currentState,
+      page: 1,
+    }));
+  }, []);
+
+  const startEdit = useCallback((appointment: Appointment) => {
+    if (!canManageAppointments) {
+      return;
+    }
+
+    setEditingAppointmentId(appointment.id);
+    setEditForm(createAppointmentEditFormState(appointment));
+  }, [canManageAppointments]);
+
+  const cancelEdit = useCallback(() => {
+    setEditingAppointmentId(null);
+    setEditForm(null);
+  }, []);
+
+  const setEditField = useCallback(
+    <TField extends keyof AppointmentEditFormState>(
+      field: TField,
+      value: AppointmentEditFormState[TField],
+    ) => {
+      setEditForm((currentState) => {
+        if (!currentState) {
+          return currentState;
+        }
+
+        return {
+          ...currentState,
+          [field]: value,
+        };
+      });
+    },
+    [],
+  );
+
+  const saveEdit = useCallback(async () => {
+    if (!canManageAppointments) {
+      return;
+    }
+
+    if (!editingAppointmentId || !editForm) {
+      return;
+    }
+
+    const scheduledAtDate = new Date(editForm.scheduledAt);
+
+    if (Number.isNaN(scheduledAtDate.getTime())) {
+      publish('error', 'Informe uma data/hora válida para o agendamento.');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await updateAppointmentById(editingAppointmentId, {
+        scheduledAt: scheduledAtDate.toISOString(),
+        notes: editForm.notes.trim() ? editForm.notes.trim() : null,
+        status: editForm.status,
+      });
+      publish('success', 'Agendamento atualizado com sucesso.');
+      cancelEdit();
+      await fetchAppointments(result.page, sortOrder, scheduledDateFilter);
+    } catch (error) {
+      publish('error', getRequestErrorMessage(error));
+    } finally {
+      setIsSaving(false);
+    }
+  }, [
+    canManageAppointments,
+    cancelEdit,
+    editForm,
+    editingAppointmentId,
+    fetchAppointments,
+    publish,
+    result.page,
+    sortOrder,
+    scheduledDateFilter,
+  ]);
+
+  const deleteAppointment = useCallback(async (appointmentId: string) => {
+    if (!canManageAppointments) {
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await deleteAppointmentById(appointmentId);
+      publish('success', 'Agendamento removido com sucesso.');
+
+      const shouldGoToPreviousPage = result.data.length === 1 && result.page > 1;
+      if (shouldGoToPreviousPage) {
+        setPage(result.page - 1);
+      } else {
+        await fetchAppointments(result.page, sortOrder, scheduledDateFilter);
+      }
+    } catch (error) {
+      publish('error', getRequestErrorMessage(error));
+    } finally {
+      setIsSaving(false);
+    }
+  }, [
+    canManageAppointments,
+    fetchAppointments,
+    publish,
+    result.data.length,
+    result.page,
+    sortOrder,
+    scheduledDateFilter,
+    setPage,
+  ]);
+
+  const cancelAppointment = useCallback(async (appointmentId: string) => {
+    if (!canCancelAppointments) {
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await cancelAppointmentById(appointmentId);
+      publish('success', 'Agendamento cancelado com sucesso.');
+      await fetchAppointments(result.page, sortOrder, scheduledDateFilter);
+    } catch (error) {
+      publish('error', getRequestErrorMessage(error));
+    } finally {
+      setIsSaving(false);
+    }
+  }, [
+    canCancelAppointments,
+    fetchAppointments,
+    publish,
+    result.page,
+    scheduledDateFilter,
+    sortOrder,
+  ]);
+
+  const appointments = useMemo(() => result.data, [result.data]);
+
+  return {
+    appointments,
+    page: result.page,
+    total: result.total,
+    totalPages: result.totalPages,
+    scheduledDateFilter,
+    sortOrder,
+    isLoading,
+    isSaving,
+    canManageAppointments,
+    canCancelAppointments,
+    editingAppointmentId,
+    editForm,
+    setPage,
+    updateScheduledDateFilter,
+    updateSortOrder,
+    startEdit,
+    cancelEdit,
+    setEditField,
+    saveEdit,
+    cancelAppointment,
+    deleteAppointment,
+  };
+};

@@ -1,11 +1,18 @@
 import api from '@/services/api';
 import { executeRequest } from '@/utils/request';
-import { getExamById, listExams } from '@/services/exams.service';
+import {
+  deleteExamById,
+  getExamById,
+  listExams,
+  updateExamById,
+} from '@/services/exams.service';
 
 jest.mock('@/services/api', () => ({
   __esModule: true,
   default: {
     get: jest.fn(),
+    patch: jest.fn(),
+    delete: jest.fn(),
   },
 }));
 
@@ -16,6 +23,8 @@ jest.mock('@/utils/request', () => ({
 describe('exams service', () => {
   const mockedApi = api as unknown as {
     get: jest.Mock;
+    patch: jest.Mock;
+    delete: jest.Mock;
   };
 
   beforeEach(() => {
@@ -72,5 +81,40 @@ describe('exams service', () => {
     const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
     await requestFactory();
     expect(mockedApi.get).toHaveBeenCalledWith('/exams/all', { params: {} });
+  });
+
+  it('should update exam by id through centralized request flow', async () => {
+    (executeRequest as jest.Mock).mockResolvedValue({
+      id: 'exam-1',
+      name: 'Exame atualizado',
+      description: 'Descrição',
+      durationMinutes: 45,
+      priceCents: 15000,
+    });
+
+    const payload = {
+      name: 'Exame atualizado',
+      description: 'Descrição',
+      durationMinutes: 45,
+      priceCents: 15000,
+    };
+
+    await updateExamById('exam-1', payload);
+
+    expect(executeRequest).toHaveBeenCalledTimes(1);
+    const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
+    await requestFactory();
+    expect(mockedApi.patch).toHaveBeenCalledWith('/exams/exam-1', payload);
+  });
+
+  it('should delete exam by id through centralized request flow', async () => {
+    (executeRequest as jest.Mock).mockResolvedValue(undefined);
+
+    await deleteExamById('exam-1');
+
+    expect(executeRequest).toHaveBeenCalledTimes(1);
+    const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
+    await requestFactory();
+    expect(mockedApi.delete).toHaveBeenCalledWith('/exams/exam-1');
   });
 });

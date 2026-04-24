@@ -198,6 +198,26 @@ describe('frontend architecture patterns', () => {
     expect(logoutLinkSource).not.toContain('useAuth');
   });
 
+  it('should centralize destructive confirmations in reusable modal flow instead of window.confirm', () => {
+    const filesUsingNativeConfirm = sourceFiles.filter((file) => {
+      return /window\.confirm\s*\(/.test(readFile(file));
+    });
+
+    expect(filesUsingNativeConfirm).toEqual([]);
+
+    const listSections = [
+      'src/components/organisms/protected/exams-list-section.tsx',
+      'src/components/organisms/protected/appointments-list-section.tsx',
+      'src/components/organisms/protected/users-list-section.tsx',
+    ];
+
+    listSections.forEach((file) => {
+      const source = readFile(file);
+      expect(source).toContain('ActionConfirmDialog');
+      expect(source).toContain('useActionConfirmation');
+    });
+  });
+
   it('should keep wrapper hooks as aliases to context hooks (DRY)', () => {
     const hookPairs = [
       ['src/hooks/useAuth.ts', 'useAuth = useAuthContext'],

@@ -50,7 +50,7 @@ describe('route templates', () => {
     );
 
     expect(screen.getByText('protected-content')).toBeInTheDocument();
-    expect(screen.getByText('B8ONE AGENDAMENTOS')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Agendamentos' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Início' })).toBeInTheDocument();
     expect(screen.getByText('Feito com')).toBeInTheDocument();
   });

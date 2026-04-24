@@ -4,3 +4,4 @@ api/coverage
 api/*.tsbuildinfo
 api/.env.*
 !api/.env.example
+releases

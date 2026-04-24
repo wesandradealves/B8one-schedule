@@ -22,7 +22,7 @@ describe('env utils', () => {
     });
 
     expect(loadedEnv).toMatchObject({
-      APP_NAME: 'B8one Agendamentos',
+      APP_NAME: 'Agendamentos',
       APP_BASE_URL: 'http://localhost:3001',
       API_BASE_URL: 'http://localhost:3000',
       API_TIMEOUT_MS: 120000,

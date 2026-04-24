@@ -1,12 +1,18 @@
 import api from '@/services/api';
 import { executeRequest } from '@/utils/request';
-import { getUserById, updateUserById } from '@/services/users.service';
+import {
+  deleteUserById,
+  getUserById,
+  listUsers,
+  updateUserById,
+} from '@/services/users.service';
 
 jest.mock('@/services/api', () => ({
   __esModule: true,
   default: {
     get: jest.fn(),
     patch: jest.fn(),
+    delete: jest.fn(),
   },
 }));
 
@@ -18,6 +24,7 @@ describe('users service', () => {
   const mockedApi = api as unknown as {
     get: jest.Mock;
     patch: jest.Mock;
+    delete: jest.Mock;
   };
 
   beforeEach(() => {
@@ -59,5 +66,34 @@ describe('users service', () => {
     const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
     await requestFactory();
     expect(mockedApi.patch).toHaveBeenCalledWith('/users/user-1', payload);
+  });
+
+  it('should list users through paginated all endpoint', async () => {
+    (executeRequest as jest.Mock).mockResolvedValue({
+      data: [],
+      page: 1,
+      limit: 8,
+      total: 0,
+      totalPages: 0,
+    });
+
+    const params = { page: 2, limit: 8 };
+    await listUsers(params);
+
+    expect(executeRequest).toHaveBeenCalledTimes(1);
+    const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
+    await requestFactory();
+    expect(mockedApi.get).toHaveBeenCalledWith('/users/all', { params });
+  });
+
+  it('should delete user by id through executeRequest', async () => {
+    (executeRequest as jest.Mock).mockResolvedValue(undefined);
+
+    await deleteUserById('user-1');
+
+    expect(executeRequest).toHaveBeenCalledTimes(1);
+    const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
+    await requestFactory();
+    expect(mockedApi.delete).toHaveBeenCalledWith('/users/user-1');
   });
 });

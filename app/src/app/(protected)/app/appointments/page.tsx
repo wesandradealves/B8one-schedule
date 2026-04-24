@@ -1,6 +1,6 @@
 import { buildSeoMetadata } from '@/utils/seo';
-import { PageContainer, PageDescription, PageTitle } from '@/components/shared/page-container';
 import { APP_ROUTES } from '@/utils/route';
+import { AppointmentsListSection } from '@/components/organisms/protected/appointments-list-section';
 
 export const metadata = buildSeoMetadata({
   title: 'Agendamentos',
@@ -9,10 +9,5 @@ export const metadata = buildSeoMetadata({
 });
 
 export default function AppointmentsPage() {
-  return (
-    <PageContainer>
-      <PageTitle>Agendamentos</PageTitle>
-      <PageDescription>Conteúdo em construção.</PageDescription>
-    </PageContainer>
-  );
+  return <AppointmentsListSection />;
 }
