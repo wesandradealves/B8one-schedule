@@ -1,16 +1,23 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCsvActions } from '@/hooks/useCsvActions';
 import { useFeedback } from '@/hooks/useFeedback';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
 import {
   cancelAppointmentById,
   deleteAppointmentById,
+  exportAppointmentsCsv,
+  importAppointmentsCsv,
   listAppointments,
   updateAppointmentById,
 } from '@/services/appointments.service';
 import type { PaginatedResult, SortOrder } from '@/types/api';
-import type { Appointment, AppointmentStatus } from '@/types/appointment';
+import type {
+  Appointment,
+  AppointmentListSortBy,
+  AppointmentStatus,
+} from '@/types/appointment';
 import { getRequestErrorMessage } from '@/utils/request';
 import { toDateTimeLocalValue } from '@/utils/format';
 
@@ -48,12 +55,18 @@ export const useAppointmentsList = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [scheduledDateFilter, setScheduledDateFilter] = useState('');
+  const [sortBy, setSortBy] = useState<AppointmentListSortBy>('scheduledAt');
   const [sortOrder, setSortOrder] = useState<SortOrder>('DESC');
   const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<AppointmentEditFormState | null>(null);
 
   const fetchAppointments = useCallback(
-    async (page: number, nextSortOrder: SortOrder, scheduledDate?: string) => {
+    async (
+      page: number,
+      nextSortOrder: SortOrder,
+      nextSortBy: AppointmentListSortBy,
+      scheduledDate?: string,
+    ) => {
       setIsLoading(true);
 
       try {
@@ -61,6 +74,7 @@ export const useAppointmentsList = () => {
           page,
           limit: PAGE_SIZE,
           sortOrder: nextSortOrder,
+          sortBy: nextSortBy,
           scheduledDate: scheduledDate || undefined,
         });
         setResult(listResult);
@@ -74,8 +88,8 @@ export const useAppointmentsList = () => {
   );
 
   useEffect(() => {
-    void fetchAppointments(result.page, sortOrder, scheduledDateFilter);
-  }, [fetchAppointments, result.page, scheduledDateFilter, sortOrder]);
+    void fetchAppointments(result.page, sortOrder, sortBy, scheduledDateFilter);
+  }, [fetchAppointments, result.page, scheduledDateFilter, sortBy, sortOrder]);
 
   const setPage = useCallback((nextPage: number) => {
     setResult((currentState) => ({
@@ -94,6 +108,14 @@ export const useAppointmentsList = () => {
 
   const updateSortOrder = useCallback((nextSortOrder: SortOrder) => {
     setSortOrder(nextSortOrder);
+    setResult((currentState) => ({
+      ...currentState,
+      page: 1,
+    }));
+  }, []);
+
+  const updateSortBy = useCallback((nextSortBy: AppointmentListSortBy) => {
+    setSortBy(nextSortBy);
     setResult((currentState) => ({
       ...currentState,
       page: 1,
@@ -158,7 +180,7 @@ export const useAppointmentsList = () => {
       });
       publish('success', 'Agendamento atualizado com sucesso.');
       cancelEdit();
-      await fetchAppointments(result.page, sortOrder, scheduledDateFilter);
+      await fetchAppointments(result.page, sortOrder, sortBy, scheduledDateFilter);
     } catch (error) {
       publish('error', getRequestErrorMessage(error));
     } finally {
@@ -172,6 +194,7 @@ export const useAppointmentsList = () => {
     fetchAppointments,
     publish,
     result.page,
+    sortBy,
     sortOrder,
     scheduledDateFilter,
   ]);
@@ -190,7 +213,7 @@ export const useAppointmentsList = () => {
       if (shouldGoToPreviousPage) {
         setPage(result.page - 1);
       } else {
-        await fetchAppointments(result.page, sortOrder, scheduledDateFilter);
+        await fetchAppointments(result.page, sortOrder, sortBy, scheduledDateFilter);
       }
     } catch (error) {
       publish('error', getRequestErrorMessage(error));
@@ -203,6 +226,7 @@ export const useAppointmentsList = () => {
     publish,
     result.data.length,
     result.page,
+    sortBy,
     sortOrder,
     scheduledDateFilter,
     setPage,
@@ -217,7 +241,7 @@ export const useAppointmentsList = () => {
     try {
       await cancelAppointmentById(appointmentId);
       publish('success', 'Agendamento cancelado com sucesso.');
-      await fetchAppointments(result.page, sortOrder, scheduledDateFilter);
+      await fetchAppointments(result.page, sortOrder, sortBy, scheduledDateFilter);
     } catch (error) {
       publish('error', getRequestErrorMessage(error));
     } finally {
@@ -229,10 +253,28 @@ export const useAppointmentsList = () => {
     publish,
     result.page,
     scheduledDateFilter,
+    sortBy,
     sortOrder,
   ]);
 
   const appointments = useMemo(() => result.data, [result.data]);
+  const refreshCurrentPage = useCallback(async () => {
+    await fetchAppointments(result.page, sortOrder, sortBy, scheduledDateFilter);
+  }, [fetchAppointments, result.page, scheduledDateFilter, sortBy, sortOrder]);
+
+  const {
+    isImportingCsv,
+    isExportingCsv,
+    isCsvBusy,
+    importCsvFile,
+    exportCsvFile,
+  } = useCsvActions({
+    canManage: canManageAppointments,
+    resourceLabel: 'agendamentos',
+    importCsv: importAppointmentsCsv,
+    exportCsv: exportAppointmentsCsv,
+    reloadList: refreshCurrentPage,
+  });
 
   return {
     appointments,
@@ -240,6 +282,7 @@ export const useAppointmentsList = () => {
     total: result.total,
     totalPages: result.totalPages,
     scheduledDateFilter,
+    sortBy,
     sortOrder,
     isLoading,
     isSaving,
@@ -249,6 +292,7 @@ export const useAppointmentsList = () => {
     editForm,
     setPage,
     updateScheduledDateFilter,
+    updateSortBy,
     updateSortOrder,
     startEdit,
     cancelEdit,
@@ -256,5 +300,10 @@ export const useAppointmentsList = () => {
     saveEdit,
     cancelAppointment,
     deleteAppointment,
+    isImportingCsv,
+    isExportingCsv,
+    isCsvBusy,
+    importCsvFile,
+    exportCsvFile,
   };
 };

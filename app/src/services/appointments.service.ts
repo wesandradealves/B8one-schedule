@@ -1,6 +1,15 @@
 import api from '@/services/api';
-import type { PaginatedResult, PaginationQueryParams } from '@/types/api';
-import type { Appointment, AppointmentStatus } from '@/types/appointment';
+import type {
+  CsvExportResult,
+  CsvImportResult,
+  PaginatedResult,
+  PaginationQueryParams,
+} from '@/types/api';
+import type {
+  Appointment,
+  AppointmentListSortBy,
+  AppointmentStatus,
+} from '@/types/appointment';
 import { executeRequest } from '@/utils/request';
 
 interface CreateAppointmentPayload {
@@ -11,6 +20,7 @@ interface CreateAppointmentPayload {
 
 interface ListAppointmentsParams extends PaginationQueryParams {
   scheduledDate?: string;
+  sortBy?: AppointmentListSortBy;
 }
 
 interface UpdateAppointmentPayload {
@@ -49,4 +59,18 @@ export const cancelAppointmentById = async (id: string): Promise<Appointment> =>
 
 export const deleteAppointmentById = async (id: string): Promise<void> => {
   await executeRequest(() => api.delete<void>(`/appointments/${id}`));
+};
+
+export const importAppointmentsCsv = async (
+  csvContent: string,
+): Promise<CsvImportResult> => {
+  return executeRequest(() =>
+    api.post<CsvImportResult>('/appointments/import/csv', {
+      csvContent,
+    }),
+  );
+};
+
+export const exportAppointmentsCsv = async (): Promise<CsvExportResult> => {
+  return executeRequest(() => api.get<CsvExportResult>('/appointments/export/csv'));
 };

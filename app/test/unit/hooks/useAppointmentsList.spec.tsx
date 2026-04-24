@@ -3,6 +3,8 @@ import { useAppointmentsList } from '@/hooks/useAppointmentsList';
 import {
   cancelAppointmentById,
   deleteAppointmentById,
+  exportAppointmentsCsv,
+  importAppointmentsCsv,
   listAppointments,
   updateAppointmentById,
 } from '@/services/appointments.service';
@@ -25,6 +27,13 @@ jest.mock('@/services/appointments.service', () => ({
   listAppointments: jest.fn(),
   updateAppointmentById: jest.fn(),
   deleteAppointmentById: jest.fn(),
+  importAppointmentsCsv: jest.fn(),
+  exportAppointmentsCsv: jest.fn(),
+}));
+
+jest.mock('@/utils/csv', () => ({
+  isCsvFile: jest.fn(() => true),
+  downloadCsvFile: jest.fn(),
 }));
 
 describe('useAppointmentsList', () => {
@@ -69,6 +78,7 @@ describe('useAppointmentsList', () => {
       page: 1,
       limit: 8,
       sortOrder: 'DESC',
+      sortBy: 'scheduledAt',
       scheduledDate: undefined,
     });
 
@@ -81,6 +91,7 @@ describe('useAppointmentsList', () => {
         page: 1,
         limit: 8,
         sortOrder: 'DESC',
+        sortBy: 'scheduledAt',
         scheduledDate: '2026-05-01',
       });
     });
@@ -299,8 +310,85 @@ describe('useAppointmentsList', () => {
         page: 1,
         limit: 8,
         sortOrder: 'ASC',
+        sortBy: 'scheduledAt',
         scheduledDate: '2026-05-01',
       });
     });
+  });
+
+  it('should update sortBy and reload first page preserving filters', async () => {
+    const { result } = renderHook(() => useAppointmentsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.updateScheduledDateFilter('2026-05-01');
+      result.current.updateSortBy('status');
+    });
+
+    await waitFor(() => {
+      expect(listAppointments).toHaveBeenLastCalledWith({
+        page: 1,
+        limit: 8,
+        sortOrder: 'DESC',
+        sortBy: 'status',
+        scheduledDate: '2026-05-01',
+      });
+    });
+  });
+
+  it('should import appointments csv and refresh current list', async () => {
+    (importAppointmentsCsv as jest.Mock).mockResolvedValue({
+      processedRows: 2,
+      createdRows: 1,
+      updatedRows: 1,
+      skippedRows: 0,
+      errors: [],
+    });
+
+    const { result } = renderHook(() => useAppointmentsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    const csvFile = new File(
+      ['userId,examId,scheduledAt\nuser-id-1,exam-id-1,2099-01-01T10:00:00.000Z'],
+      'appointments.csv',
+      { type: 'text/csv' },
+    );
+    Object.defineProperty(csvFile, 'text', {
+      value: jest.fn().mockResolvedValue(
+        'userId,examId,scheduledAt\nuser-id-1,exam-id-1,2099-01-01T10:00:00.000Z',
+      ),
+    });
+
+    await act(async () => {
+      await result.current.importCsvFile(csvFile);
+    });
+
+    expect(importAppointmentsCsv).toHaveBeenCalledTimes(1);
+    expect(listAppointments).toHaveBeenCalledTimes(2);
+  });
+
+  it('should export appointments csv', async () => {
+    (exportAppointmentsCsv as jest.Mock).mockResolvedValue({
+      fileName: 'appointments.csv',
+      csvContent: 'userId,examId,scheduledAt',
+    });
+
+    const { result } = renderHook(() => useAppointmentsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.exportCsvFile();
+    });
+
+    expect(exportAppointmentsCsv).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,10 +1,17 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useUsersList } from '@/hooks/useUsersList';
-import { deleteUserById, listUsers, updateUserById } from '@/services/users.service';
+import {
+  deleteUserById,
+  exportUsersCsv,
+  importUsersCsv,
+  listUsers,
+  updateUserById,
+} from '@/services/users.service';
 
 const useAuthMock = jest.fn();
 const useRolePermissionsMock = jest.fn();
 const publishMock = jest.fn();
+const logoutMock = jest.fn();
 
 jest.mock('@/hooks/useAuth', () => ({
   useAuth: () => useAuthMock(),
@@ -20,10 +27,21 @@ jest.mock('@/hooks/useFeedback', () => ({
   }),
 }));
 
+jest.mock('@/hooks/useLogout', () => ({
+  useLogout: () => logoutMock,
+}));
+
 jest.mock('@/services/users.service', () => ({
   listUsers: jest.fn(),
   updateUserById: jest.fn(),
   deleteUserById: jest.fn(),
+  importUsersCsv: jest.fn(),
+  exportUsersCsv: jest.fn(),
+}));
+
+jest.mock('@/utils/csv', () => ({
+  isCsvFile: jest.fn(() => true),
+  downloadCsvFile: jest.fn(),
 }));
 
 describe('useUsersList', () => {
@@ -67,7 +85,12 @@ describe('useUsersList', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(listUsers).toHaveBeenCalledWith({ page: 1, limit: 8, sortOrder: 'DESC' });
+    expect(listUsers).toHaveBeenCalledWith({
+      page: 1,
+      limit: 8,
+      sortOrder: 'DESC',
+      sortBy: 'createdAt',
+    });
     expect(result.current.authenticatedUserId).toBe('admin-1');
     expect(result.current.users).toHaveLength(1);
   });
@@ -133,6 +156,7 @@ describe('useUsersList', () => {
     act(() => {
       result.current.startEdit(result.current.users[0]);
       result.current.setEditField('fullName', 'Cliente Atualizado');
+      result.current.setEditField('email', 'cliente.atualizado@b8one.com');
       result.current.setEditField('profile', 'ADMIN');
       result.current.setEditField('isActive', false);
     });
@@ -143,10 +167,67 @@ describe('useUsersList', () => {
 
     expect(updateUserById).toHaveBeenCalledWith('user-1', {
       fullName: 'Cliente Atualizado',
+      email: 'cliente.atualizado@b8one.com',
       profile: 'ADMIN',
       isActive: false,
     });
     expect(publishMock).toHaveBeenCalledWith('success', 'Usuário atualizado com sucesso.');
+  });
+
+  it('should validate email before saving', async () => {
+    const { result } = renderHook(() => useUsersList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.startEdit(result.current.users[0]);
+      result.current.setEditField('email', 'invalid-email');
+    });
+
+    await act(async () => {
+      await result.current.saveEdit();
+    });
+
+    expect(updateUserById).not.toHaveBeenCalled();
+    expect(publishMock).toHaveBeenCalledWith('error', 'Informe um e-mail válido.');
+  });
+
+  it('should force logout when logged user changes own role/email/status', async () => {
+    (listUsers as jest.Mock).mockResolvedValue({
+      data: [
+        {
+          id: 'admin-1',
+          fullName: 'Admin',
+          email: 'admin@b8one.com',
+          profile: 'ADMIN',
+          isActive: true,
+        },
+      ],
+      page: 1,
+      limit: 8,
+      total: 1,
+      totalPages: 1,
+    });
+    (updateUserById as jest.Mock).mockResolvedValue({ id: 'admin-1' });
+
+    const { result } = renderHook(() => useUsersList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.startEdit(result.current.users[0]);
+      result.current.setEditField('profile', 'CLIENT');
+    });
+
+    await act(async () => {
+      await result.current.saveEdit();
+    });
+
+    expect(logoutMock).toHaveBeenCalledTimes(1);
   });
 
   it('should delete and go to previous page when current page gets empty', async () => {
@@ -216,7 +297,82 @@ describe('useUsersList', () => {
         page: 1,
         limit: 8,
         sortOrder: 'ASC',
+        sortBy: 'createdAt',
       });
     });
+  });
+
+  it('should update sortBy and reload first page', async () => {
+    const { result } = renderHook(() => useUsersList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.updateSortBy('profile');
+    });
+
+    await waitFor(() => {
+      expect(listUsers).toHaveBeenLastCalledWith({
+        page: 1,
+        limit: 8,
+        sortOrder: 'DESC',
+        sortBy: 'profile',
+      });
+    });
+  });
+
+  it('should import users csv and refresh current list', async () => {
+    (importUsersCsv as jest.Mock).mockResolvedValue({
+      processedRows: 2,
+      createdRows: 1,
+      updatedRows: 1,
+      skippedRows: 0,
+      errors: [],
+    });
+
+    const { result } = renderHook(() => useUsersList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    const csvFile = new File(
+      ['fullName,email,profile,isActive\nNew User,new@b8one.com,CLIENT,true'],
+      'users.csv',
+      { type: 'text/csv' },
+    );
+    Object.defineProperty(csvFile, 'text', {
+      value: jest.fn().mockResolvedValue(
+        'fullName,email,profile,isActive\nNew User,new@b8one.com,CLIENT,true',
+      ),
+    });
+
+    await act(async () => {
+      await result.current.importCsvFile(csvFile);
+    });
+
+    expect(importUsersCsv).toHaveBeenCalledTimes(1);
+    expect(listUsers).toHaveBeenCalledTimes(2);
+  });
+
+  it('should export users csv', async () => {
+    (exportUsersCsv as jest.Mock).mockResolvedValue({
+      fileName: 'users.csv',
+      csvContent: 'fullName,email,profile,isActive',
+    });
+
+    const { result } = renderHook(() => useUsersList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.exportCsvFile();
+    });
+
+    expect(exportUsersCsv).toHaveBeenCalledTimes(1);
   });
 });

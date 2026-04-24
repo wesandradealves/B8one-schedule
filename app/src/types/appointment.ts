@@ -1,4 +1,5 @@
 export type AppointmentStatus = 'SCHEDULED' | 'CANCELLED';
+export type AppointmentListSortBy = 'scheduledAt' | 'status';
 
 export type AppointmentChangeStatus = 'NONE' | 'PENDING';
 

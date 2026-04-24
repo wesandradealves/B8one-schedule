@@ -28,17 +28,24 @@ describe('ExamsListSection', () => {
       totalPages: 1,
       isLoading: false,
       isSaving: false,
+      sortBy: 'createdAt',
       sortOrder: 'DESC',
       canManageExams: false,
       editingExamId: null,
       editForm: null,
       setPage: jest.fn(),
+      updateSortBy: jest.fn(),
       updateSortOrder: jest.fn(),
       startEdit: jest.fn(),
       cancelEdit: jest.fn(),
       setEditField: jest.fn(),
       saveEdit: jest.fn(),
       deleteExam: jest.fn(),
+      isImportingCsv: false,
+      isExportingCsv: false,
+      isCsvBusy: false,
+      importCsvFile: jest.fn(),
+      exportCsvFile: jest.fn(),
     });
 
     render(<ExamsListSection />);
@@ -46,6 +53,8 @@ describe('ExamsListSection', () => {
     expect(screen.getByText('Hemograma')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Excluir' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Importar CSV' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Exportar CSV' })).not.toBeInTheDocument();
   });
 
   it('should render admin actions and dispatch callbacks', () => {
@@ -67,20 +76,30 @@ describe('ExamsListSection', () => {
       totalPages: 1,
       isLoading: false,
       isSaving: false,
+      sortBy: 'createdAt',
       sortOrder: 'DESC',
       canManageExams: true,
       editingExamId: null,
       editForm: null,
       setPage: jest.fn(),
+      updateSortBy: jest.fn(),
       updateSortOrder: jest.fn(),
       startEdit,
       cancelEdit: jest.fn(),
       setEditField: jest.fn(),
       saveEdit: jest.fn(),
       deleteExam,
+      isImportingCsv: false,
+      isExportingCsv: false,
+      isCsvBusy: false,
+      importCsvFile: jest.fn(),
+      exportCsvFile: jest.fn(),
     });
 
     render(<ExamsListSection />);
+
+    expect(screen.getByRole('button', { name: 'Importar CSV' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Exportar CSV' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Editar' }));
     expect(startEdit).toHaveBeenCalled();
@@ -109,17 +128,24 @@ describe('ExamsListSection', () => {
       totalPages: 1,
       isLoading: false,
       isSaving: false,
+      sortBy: 'createdAt',
       sortOrder: 'DESC',
       canManageExams: true,
       editingExamId: null,
       editForm: null,
       setPage: jest.fn(),
+      updateSortBy: jest.fn(),
       updateSortOrder: jest.fn(),
       startEdit: jest.fn(),
       cancelEdit: jest.fn(),
       setEditField: jest.fn(),
       saveEdit: jest.fn(),
       deleteExam: jest.fn(),
+      isImportingCsv: false,
+      isExportingCsv: false,
+      isCsvBusy: false,
+      importCsvFile: jest.fn(),
+      exportCsvFile: jest.fn(),
     });
 
     render(<ExamsListSection />);
@@ -150,6 +176,7 @@ describe('ExamsListSection', () => {
       totalPages: 1,
       isLoading: false,
       isSaving: false,
+      sortBy: 'createdAt',
       sortOrder: 'DESC',
       canManageExams: true,
       editingExamId: 'exam-1',
@@ -160,12 +187,18 @@ describe('ExamsListSection', () => {
         priceCents: '15000',
       },
       setPage: jest.fn(),
+      updateSortBy: jest.fn(),
       updateSortOrder: jest.fn(),
       startEdit: jest.fn(),
       cancelEdit,
       setEditField: jest.fn(),
       saveEdit,
       deleteExam: jest.fn(),
+      isImportingCsv: false,
+      isExportingCsv: false,
+      isCsvBusy: false,
+      importCsvFile: jest.fn(),
+      exportCsvFile: jest.fn(),
     });
 
     render(<ExamsListSection />);
@@ -180,6 +213,7 @@ describe('ExamsListSection', () => {
   });
 
   it('should dispatch sort changes', () => {
+    const updateSortBy = jest.fn();
     const updateSortOrder = jest.fn();
 
     useExamsListMock.mockReturnValue({
@@ -189,22 +223,35 @@ describe('ExamsListSection', () => {
       totalPages: 0,
       isLoading: false,
       isSaving: false,
+      sortBy: 'createdAt',
       sortOrder: 'DESC',
       canManageExams: true,
       editingExamId: null,
       editForm: null,
       setPage: jest.fn(),
+      updateSortBy,
       updateSortOrder,
       startEdit: jest.fn(),
       cancelEdit: jest.fn(),
       setEditField: jest.fn(),
       saveEdit: jest.fn(),
       deleteExam: jest.fn(),
+      isImportingCsv: false,
+      isExportingCsv: false,
+      isCsvBusy: false,
+      importCsvFile: jest.fn(),
+      exportCsvFile: jest.fn(),
     });
 
     render(<ExamsListSection />);
 
-    fireEvent.change(screen.getByLabelText('Ordenar'), {
+    fireEvent.change(screen.getByLabelText('Filtrar'), {
+      target: { value: 'priceCents' },
+    });
+
+    expect(updateSortBy).toHaveBeenCalledWith('priceCents');
+
+    fireEvent.change(screen.getByLabelText('Ordem dos resultados'), {
       target: { value: 'ASC' },
     });
 

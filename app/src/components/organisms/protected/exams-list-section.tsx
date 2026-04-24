@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import { ListActionButton } from '@/components/atoms/list-action-button';
 import { ListFormInput, ListFormSelect } from '@/components/atoms/list-form-controls';
 import { ActionConfirmDialog } from '@/components/molecules/action-confirm-dialog';
+import { ListCsvControls } from '@/components/molecules/list-csv-controls';
 import {
   PaginatedListTable,
   type PaginatedListColumn,
@@ -13,7 +14,7 @@ import { PageContainer, PageDescription, PageTitle } from '@/components/shared/p
 import { useActionConfirmation } from '@/hooks/useActionConfirmation';
 import { useExamsList } from '@/hooks/useExamsList';
 import type { SortOrder } from '@/types/api';
-import type { Exam } from '@/types/exam';
+import type { Exam, ExamListSortBy } from '@/types/exam';
 import { formatCurrencyFromCents } from '@/utils/format';
 
 const Controls = styled.div.attrs({
@@ -30,6 +31,10 @@ const FilterWrapper = styled.div.attrs({
   className: 'flex items-center gap-2',
 })``;
 
+const HeaderRightContent = styled.div.attrs({
+  className: 'flex flex-wrap items-center justify-end gap-2',
+})``;
+
 const FilterLabel = styled.label.attrs({
   className: 'text-xs font-medium sm:text-sm',
 })`
@@ -37,8 +42,13 @@ const FilterLabel = styled.label.attrs({
 `;
 
 const sortOptions: Array<{ value: SortOrder; label: string }> = [
-  { value: 'DESC', label: 'Mais recentes' },
-  { value: 'ASC', label: 'Mais antigos' },
+  { value: 'DESC', label: 'Decrescente' },
+  { value: 'ASC', label: 'Crescente' },
+];
+
+const sortByOptions: Array<{ value: ExamListSortBy; label: string }> = [
+  { value: 'createdAt', label: 'Data de criação' },
+  { value: 'priceCents', label: 'Valor' },
 ];
 
 export function ExamsListSection() {
@@ -49,17 +59,24 @@ export function ExamsListSection() {
     totalPages,
     isLoading,
     isSaving,
+    sortBy,
     sortOrder,
     canManageExams,
     editingExamId,
     editForm,
     setPage,
+    updateSortBy,
     updateSortOrder,
     startEdit,
     cancelEdit,
     setEditField,
     saveEdit,
     deleteExam,
+    isImportingCsv,
+    isExportingCsv,
+    isCsvBusy,
+    importCsvFile,
+    exportCsvFile,
   } = useExamsList();
   const {
     isOpen,
@@ -175,7 +192,7 @@ export function ExamsListSection() {
     const actionColumn: PaginatedListColumn<Exam> = {
       key: 'actions',
       header: 'Ações',
-      align: 'right',
+      align: 'center',
       render: (exam) => {
         if (editingExamId === exam.id) {
           return (
@@ -222,22 +239,58 @@ export function ExamsListSection() {
 
   const headerRight = useMemo(() => {
     return (
-      <FilterWrapper>
-        <FilterLabel htmlFor="exams-sort-order">Ordenar</FilterLabel>
-        <ListFormSelect
-          id="exams-sort-order"
-          value={sortOrder}
-          onChange={(event) => updateSortOrder(event.target.value as SortOrder)}
-        >
-          {sortOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </ListFormSelect>
-      </FilterWrapper>
+      <HeaderRightContent>
+        <FilterWrapper>
+          <FilterLabel htmlFor="exams-sort-by">Filtrar</FilterLabel>
+          <ListFormSelect
+            id="exams-sort-by"
+            value={sortBy}
+            onChange={(event) => updateSortBy(event.target.value as ExamListSortBy)}
+          >
+            {sortByOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </ListFormSelect>
+          <ListFormSelect
+            aria-label="Ordem dos resultados"
+            id="exams-sort-order"
+            value={sortOrder}
+            onChange={(event) => updateSortOrder(event.target.value as SortOrder)}
+          >
+            {sortOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </ListFormSelect>
+        </FilterWrapper>
+        {canManageExams ? (
+          <ListCsvControls
+            isDisabled={isCsvBusy || isSaving}
+            isExporting={isExportingCsv}
+            isImporting={isImportingCsv}
+            resourceLabel="exames"
+            onExportCsv={exportCsvFile}
+            onImportCsv={importCsvFile}
+          />
+        ) : null}
+      </HeaderRightContent>
     );
-  }, [sortOrder, updateSortOrder]);
+  }, [
+    canManageExams,
+    exportCsvFile,
+    importCsvFile,
+    isCsvBusy,
+    isExportingCsv,
+    isImportingCsv,
+    isSaving,
+    sortBy,
+    sortOrder,
+    updateSortBy,
+    updateSortOrder,
+  ]);
 
   return (
     <PageContainer>

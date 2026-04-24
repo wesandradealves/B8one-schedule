@@ -1,5 +1,7 @@
 import type { UserProfile } from '@/types/auth';
 
+export type UserListSortBy = 'createdAt' | 'profile' | 'isActive';
+
 export interface User {
   id: string;
   fullName: string;

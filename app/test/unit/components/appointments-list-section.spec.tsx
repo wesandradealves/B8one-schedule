@@ -34,6 +34,7 @@ describe('AppointmentsListSection', () => {
       total: 1,
       totalPages: 1,
       scheduledDateFilter: '',
+      sortBy: 'scheduledAt',
       sortOrder: 'DESC',
       isLoading: false,
       isSaving: false,
@@ -43,6 +44,7 @@ describe('AppointmentsListSection', () => {
       editForm: null,
       setPage: jest.fn(),
       updateScheduledDateFilter,
+      updateSortBy: jest.fn(),
       updateSortOrder: jest.fn(),
       startEdit: jest.fn(),
       cancelEdit: jest.fn(),
@@ -50,11 +52,18 @@ describe('AppointmentsListSection', () => {
       saveEdit: jest.fn(),
       cancelAppointment: jest.fn(),
       deleteAppointment: jest.fn(),
+      isImportingCsv: false,
+      isExportingCsv: false,
+      isCsvBusy: false,
+      importCsvFile: jest.fn(),
+      exportCsvFile: jest.fn(),
     });
 
     render(<AppointmentsListSection />);
 
     expect(screen.getByText('Hemograma')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Importar CSV' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Exportar CSV' })).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Data'), {
       target: { value: '2026-05-01' },
     });
@@ -83,6 +92,7 @@ describe('AppointmentsListSection', () => {
       total: 1,
       totalPages: 1,
       scheduledDateFilter: '',
+      sortBy: 'scheduledAt',
       sortOrder: 'DESC',
       isLoading: false,
       isSaving: false,
@@ -92,6 +102,7 @@ describe('AppointmentsListSection', () => {
       editForm: null,
       setPage: jest.fn(),
       updateScheduledDateFilter: jest.fn(),
+      updateSortBy: jest.fn(),
       updateSortOrder: jest.fn(),
       startEdit,
       cancelEdit: jest.fn(),
@@ -99,9 +110,17 @@ describe('AppointmentsListSection', () => {
       saveEdit: jest.fn(),
       cancelAppointment,
       deleteAppointment,
+      isImportingCsv: false,
+      isExportingCsv: false,
+      isCsvBusy: false,
+      importCsvFile: jest.fn(),
+      exportCsvFile: jest.fn(),
     });
 
     render(<AppointmentsListSection />);
+
+    expect(screen.getByRole('button', { name: 'Importar CSV' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Exportar CSV' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Editar' }));
     expect(startEdit).toHaveBeenCalled();
@@ -139,6 +158,7 @@ describe('AppointmentsListSection', () => {
       total: 1,
       totalPages: 1,
       scheduledDateFilter: '',
+      sortBy: 'scheduledAt',
       sortOrder: 'DESC',
       isLoading: false,
       isSaving: false,
@@ -148,6 +168,7 @@ describe('AppointmentsListSection', () => {
       editForm: null,
       setPage: jest.fn(),
       updateScheduledDateFilter: jest.fn(),
+      updateSortBy: jest.fn(),
       updateSortOrder: jest.fn(),
       startEdit: jest.fn(),
       cancelEdit: jest.fn(),
@@ -155,6 +176,11 @@ describe('AppointmentsListSection', () => {
       saveEdit: jest.fn(),
       cancelAppointment: jest.fn(),
       deleteAppointment: jest.fn(),
+      isImportingCsv: false,
+      isExportingCsv: false,
+      isCsvBusy: false,
+      importCsvFile: jest.fn(),
+      exportCsvFile: jest.fn(),
     });
 
     render(<AppointmentsListSection />);
@@ -188,6 +214,7 @@ describe('AppointmentsListSection', () => {
       total: 1,
       totalPages: 1,
       scheduledDateFilter: '',
+      sortBy: 'scheduledAt',
       sortOrder: 'DESC',
       isLoading: false,
       isSaving: false,
@@ -201,6 +228,7 @@ describe('AppointmentsListSection', () => {
       },
       setPage: jest.fn(),
       updateScheduledDateFilter: jest.fn(),
+      updateSortBy: jest.fn(),
       updateSortOrder: jest.fn(),
       startEdit: jest.fn(),
       cancelEdit,
@@ -208,6 +236,11 @@ describe('AppointmentsListSection', () => {
       saveEdit,
       cancelAppointment: jest.fn(),
       deleteAppointment: jest.fn(),
+      isImportingCsv: false,
+      isExportingCsv: false,
+      isCsvBusy: false,
+      importCsvFile: jest.fn(),
+      exportCsvFile: jest.fn(),
     });
 
     render(<AppointmentsListSection />);
@@ -221,6 +254,7 @@ describe('AppointmentsListSection', () => {
   });
 
   it('should dispatch sort changes', () => {
+    const updateSortBy = jest.fn();
     const updateSortOrder = jest.fn();
 
     useAppointmentsListMock.mockReturnValue({
@@ -229,6 +263,7 @@ describe('AppointmentsListSection', () => {
       total: 0,
       totalPages: 0,
       scheduledDateFilter: '',
+      sortBy: 'scheduledAt',
       sortOrder: 'DESC',
       isLoading: false,
       isSaving: false,
@@ -238,6 +273,7 @@ describe('AppointmentsListSection', () => {
       editForm: null,
       setPage: jest.fn(),
       updateScheduledDateFilter: jest.fn(),
+      updateSortBy,
       updateSortOrder,
       startEdit: jest.fn(),
       cancelEdit: jest.fn(),
@@ -245,11 +281,22 @@ describe('AppointmentsListSection', () => {
       saveEdit: jest.fn(),
       cancelAppointment: jest.fn(),
       deleteAppointment: jest.fn(),
+      isImportingCsv: false,
+      isExportingCsv: false,
+      isCsvBusy: false,
+      importCsvFile: jest.fn(),
+      exportCsvFile: jest.fn(),
     });
 
     render(<AppointmentsListSection />);
 
-    fireEvent.change(screen.getByLabelText('Ordenar'), {
+    fireEvent.change(screen.getByLabelText('Filtrar'), {
+      target: { value: 'status' },
+    });
+
+    expect(updateSortBy).toHaveBeenCalledWith('status');
+
+    fireEvent.change(screen.getByLabelText('Ordem dos resultados'), {
       target: { value: 'ASC' },
     });
 
@@ -276,6 +323,7 @@ describe('AppointmentsListSection', () => {
       total: 1,
       totalPages: 1,
       scheduledDateFilter: '',
+      sortBy: 'scheduledAt',
       sortOrder: 'DESC',
       isLoading: false,
       isSaving: false,
@@ -285,6 +333,7 @@ describe('AppointmentsListSection', () => {
       editForm: null,
       setPage: jest.fn(),
       updateScheduledDateFilter: jest.fn(),
+      updateSortBy: jest.fn(),
       updateSortOrder: jest.fn(),
       startEdit: jest.fn(),
       cancelEdit: jest.fn(),
@@ -292,6 +341,11 @@ describe('AppointmentsListSection', () => {
       saveEdit: jest.fn(),
       cancelAppointment,
       deleteAppointment: jest.fn(),
+      isImportingCsv: false,
+      isExportingCsv: false,
+      isCsvBusy: false,
+      importCsvFile: jest.fn(),
+      exportCsvFile: jest.fn(),
     });
 
     render(<AppointmentsListSection />);

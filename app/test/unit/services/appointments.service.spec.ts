@@ -4,6 +4,8 @@ import {
   cancelAppointmentById,
   createAppointment,
   deleteAppointmentById,
+  exportAppointmentsCsv,
+  importAppointmentsCsv,
   listAppointments,
   updateAppointmentById,
 } from '@/services/appointments.service';
@@ -43,7 +45,7 @@ describe('appointments service', () => {
       totalPages: 0,
     });
 
-    const params = { page: 3, limit: 15 };
+    const params = { page: 3, limit: 15, sortBy: 'status' as const, sortOrder: 'ASC' as const };
     await listAppointments(params);
 
     expect(executeRequest).toHaveBeenCalledTimes(1);
@@ -90,7 +92,13 @@ describe('appointments service', () => {
       totalPages: 0,
     });
 
-    const params = { page: 1, limit: 8, scheduledDate: '2026-05-01' };
+    const params = {
+      page: 1,
+      limit: 8,
+      scheduledDate: '2026-05-01',
+      sortBy: 'scheduledAt' as const,
+      sortOrder: 'DESC' as const,
+    };
     await listAppointments(params);
 
     expect(executeRequest).toHaveBeenCalledTimes(1);
@@ -142,5 +150,40 @@ describe('appointments service', () => {
     const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
     await requestFactory();
     expect(mockedApi.delete).toHaveBeenCalledWith('/appointments/appointment-1');
+  });
+
+  it('should import appointments csv through centralized request flow', async () => {
+    (executeRequest as jest.Mock).mockResolvedValue({
+      processedRows: 2,
+      createdRows: 1,
+      updatedRows: 1,
+      skippedRows: 0,
+      errors: [],
+    });
+
+    await importAppointmentsCsv(
+      'userId,examId,scheduledAt\nuser-id-1,exam-id-1,2099-01-01T10:00:00.000Z',
+    );
+
+    expect(executeRequest).toHaveBeenCalledTimes(1);
+    const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
+    await requestFactory();
+    expect(mockedApi.post).toHaveBeenCalledWith('/appointments/import/csv', {
+      csvContent: 'userId,examId,scheduledAt\nuser-id-1,exam-id-1,2099-01-01T10:00:00.000Z',
+    });
+  });
+
+  it('should export appointments csv through centralized request flow', async () => {
+    (executeRequest as jest.Mock).mockResolvedValue({
+      fileName: 'appointments.csv',
+      csvContent: 'userId,examId,scheduledAt',
+    });
+
+    await exportAppointmentsCsv();
+
+    expect(executeRequest).toHaveBeenCalledTimes(1);
+    const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
+    await requestFactory();
+    expect(mockedApi.get).toHaveBeenCalledWith('/appointments/export/csv');
   });
 });

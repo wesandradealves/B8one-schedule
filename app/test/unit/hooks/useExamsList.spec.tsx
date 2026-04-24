@@ -1,6 +1,12 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useExamsList } from '@/hooks/useExamsList';
-import { deleteExamById, listExams, updateExamById } from '@/services/exams.service';
+import {
+  deleteExamById,
+  exportExamsCsv,
+  importExamsCsv,
+  listExams,
+  updateExamById,
+} from '@/services/exams.service';
 
 const useRolePermissionsMock = jest.fn();
 const publishMock = jest.fn();
@@ -19,6 +25,13 @@ jest.mock('@/services/exams.service', () => ({
   listExams: jest.fn(),
   updateExamById: jest.fn(),
   deleteExamById: jest.fn(),
+  importExamsCsv: jest.fn(),
+  exportExamsCsv: jest.fn(),
+}));
+
+jest.mock('@/utils/csv', () => ({
+  isCsvFile: jest.fn(() => true),
+  downloadCsvFile: jest.fn(),
 }));
 
 describe('useExamsList', () => {
@@ -55,7 +68,12 @@ describe('useExamsList', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(listExams).toHaveBeenCalledWith({ page: 1, limit: 8, sortOrder: 'DESC' });
+    expect(listExams).toHaveBeenCalledWith({
+      page: 1,
+      limit: 8,
+      sortOrder: 'DESC',
+      sortBy: 'createdAt',
+    });
     expect(result.current.exams).toHaveLength(1);
     expect(result.current.exams[0].id).toBe('exam-1');
   });
@@ -215,7 +233,82 @@ describe('useExamsList', () => {
         page: 1,
         limit: 8,
         sortOrder: 'ASC',
+        sortBy: 'createdAt',
       });
     });
+  });
+
+  it('should update sortBy and reload first page', async () => {
+    const { result } = renderHook(() => useExamsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.updateSortBy('priceCents');
+    });
+
+    await waitFor(() => {
+      expect(listExams).toHaveBeenLastCalledWith({
+        page: 1,
+        limit: 8,
+        sortOrder: 'DESC',
+        sortBy: 'priceCents',
+      });
+    });
+  });
+
+  it('should import exams csv and refresh current list', async () => {
+    (importExamsCsv as jest.Mock).mockResolvedValue({
+      processedRows: 2,
+      createdRows: 1,
+      updatedRows: 1,
+      skippedRows: 0,
+      errors: [],
+    });
+
+    const { result } = renderHook(() => useExamsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    const csvFile = new File(
+      ['name,durationMinutes,priceCents,isActive\nExam,30,1000,true'],
+      'exams.csv',
+      { type: 'text/csv' },
+    );
+    Object.defineProperty(csvFile, 'text', {
+      value: jest.fn().mockResolvedValue(
+        'name,durationMinutes,priceCents,isActive\nExam,30,1000,true',
+      ),
+    });
+
+    await act(async () => {
+      await result.current.importCsvFile(csvFile);
+    });
+
+    expect(importExamsCsv).toHaveBeenCalledTimes(1);
+    expect(listExams).toHaveBeenCalledTimes(2);
+  });
+
+  it('should export exams csv', async () => {
+    (exportExamsCsv as jest.Mock).mockResolvedValue({
+      fileName: 'exams.csv',
+      csvContent: 'name,durationMinutes,priceCents,isActive',
+    });
+
+    const { result } = renderHook(() => useExamsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.exportCsvFile();
+    });
+
+    expect(exportExamsCsv).toHaveBeenCalledTimes(1);
   });
 });
