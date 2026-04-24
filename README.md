@@ -657,6 +657,20 @@ Implementações aplicadas e validadas no fluxo de autenticação:
 - Botões com estado de carregamento usando `aria-busy`.
 - Loader global com `role="status"` e `aria-live="polite"`.
 
+### 12.5 Capturas do fluxo de autenticação
+
+#### Login
+
+![Tela de login](docs/screenshots/login.png)
+
+#### OTP (2FA)
+
+![Tela de OTP 2FA](docs/screenshots/otp-2fa.png)
+
+#### Recuperação de senha
+
+![Tela de recuperação de senha](docs/screenshots/recovery-password.png)
+
 ## 13. Validação Executada (Backend)
 
 Executado em `api/`:
