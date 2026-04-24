@@ -18,6 +18,7 @@ describe('UsersListSection', () => {
       page: 1,
       total: 0,
       totalPages: 0,
+      sortBy: 'createdAt',
       sortOrder: 'DESC',
       isLoading: false,
       isSaving: false,
@@ -26,17 +27,25 @@ describe('UsersListSection', () => {
       editForm: null,
       authenticatedUserId: null,
       setPage: jest.fn(),
+      updateSortBy: jest.fn(),
       updateSortOrder: jest.fn(),
       startEdit: jest.fn(),
       cancelEdit: jest.fn(),
       setEditField: jest.fn(),
       saveEdit: jest.fn(),
       deleteUser: jest.fn(),
+      isImportingCsv: false,
+      isExportingCsv: false,
+      isCsvBusy: false,
+      importCsvFile: jest.fn(),
+      exportCsvFile: jest.fn(),
     });
 
     render(<UsersListSection />);
 
     expect(screen.getByText('Acesso restrito ao perfil administrador.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Importar CSV' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Exportar CSV' })).not.toBeInTheDocument();
   });
 
   it('should render admin list and action callbacks', () => {
@@ -63,6 +72,7 @@ describe('UsersListSection', () => {
       page: 1,
       total: 2,
       totalPages: 1,
+      sortBy: 'createdAt',
       sortOrder: 'DESC',
       isLoading: false,
       isSaving: false,
@@ -71,15 +81,24 @@ describe('UsersListSection', () => {
       editForm: null,
       authenticatedUserId: 'user-1',
       setPage: jest.fn(),
+      updateSortBy: jest.fn(),
       updateSortOrder: jest.fn(),
       startEdit,
       cancelEdit: jest.fn(),
       setEditField: jest.fn(),
       saveEdit: jest.fn(),
       deleteUser,
+      isImportingCsv: false,
+      isExportingCsv: false,
+      isCsvBusy: false,
+      importCsvFile: jest.fn(),
+      exportCsvFile: jest.fn(),
     });
 
     render(<UsersListSection />);
+
+    expect(screen.getByRole('button', { name: 'Importar CSV' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Exportar CSV' })).toBeInTheDocument();
 
     const editButtons = screen.getAllByRole('button', { name: 'Editar' });
     fireEvent.click(editButtons[1]);
@@ -117,6 +136,7 @@ describe('UsersListSection', () => {
       page: 1,
       total: 2,
       totalPages: 1,
+      sortBy: 'createdAt',
       sortOrder: 'DESC',
       isLoading: false,
       isSaving: false,
@@ -125,12 +145,18 @@ describe('UsersListSection', () => {
       editForm: null,
       authenticatedUserId: 'user-1',
       setPage: jest.fn(),
+      updateSortBy: jest.fn(),
       updateSortOrder: jest.fn(),
       startEdit: jest.fn(),
       cancelEdit: jest.fn(),
       setEditField: jest.fn(),
       saveEdit: jest.fn(),
       deleteUser: jest.fn(),
+      isImportingCsv: false,
+      isExportingCsv: false,
+      isCsvBusy: false,
+      importCsvFile: jest.fn(),
+      exportCsvFile: jest.fn(),
     });
 
     render(<UsersListSection />);
@@ -160,6 +186,7 @@ describe('UsersListSection', () => {
       page: 1,
       total: 1,
       totalPages: 1,
+      sortBy: 'createdAt',
       sortOrder: 'DESC',
       isLoading: false,
       isSaving: false,
@@ -167,22 +194,30 @@ describe('UsersListSection', () => {
       editingUserId: 'user-1',
       editForm: {
         fullName: 'Administrador Atualizado',
+        email: 'admin@b8one.com',
         profile: 'ADMIN',
         isActive: true,
       },
       authenticatedUserId: 'user-1',
       setPage: jest.fn(),
+      updateSortBy: jest.fn(),
       updateSortOrder: jest.fn(),
       startEdit: jest.fn(),
       cancelEdit,
       setEditField: jest.fn(),
       saveEdit,
       deleteUser: jest.fn(),
+      isImportingCsv: false,
+      isExportingCsv: false,
+      isCsvBusy: false,
+      importCsvFile: jest.fn(),
+      exportCsvFile: jest.fn(),
     });
 
     render(<UsersListSection />);
 
     expect(screen.getByLabelText('Nome do usuário')).toBeInTheDocument();
+    expect(screen.getByLabelText('E-mail do usuário')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Salvar' }));
     expect(saveEdit).toHaveBeenCalledTimes(1);
 
@@ -192,12 +227,14 @@ describe('UsersListSection', () => {
 
   it('should dispatch sort changes', () => {
     const updateSortOrder = jest.fn();
+    const updateSortBy = jest.fn();
 
     useUsersListMock.mockReturnValue({
       users: [],
       page: 1,
       total: 0,
       totalPages: 0,
+      sortBy: 'createdAt',
       sortOrder: 'DESC',
       isLoading: false,
       isSaving: false,
@@ -206,17 +243,29 @@ describe('UsersListSection', () => {
       editForm: null,
       authenticatedUserId: 'admin-1',
       setPage: jest.fn(),
+      updateSortBy,
       updateSortOrder,
       startEdit: jest.fn(),
       cancelEdit: jest.fn(),
       setEditField: jest.fn(),
       saveEdit: jest.fn(),
       deleteUser: jest.fn(),
+      isImportingCsv: false,
+      isExportingCsv: false,
+      isCsvBusy: false,
+      importCsvFile: jest.fn(),
+      exportCsvFile: jest.fn(),
     });
 
     render(<UsersListSection />);
 
-    fireEvent.change(screen.getByLabelText('Ordenar'), {
+    fireEvent.change(screen.getByLabelText('Filtrar'), {
+      target: { value: 'profile' },
+    });
+
+    expect(updateSortBy).toHaveBeenCalledWith('profile');
+
+    fireEvent.change(screen.getByLabelText('Ordem dos resultados'), {
       target: { value: 'ASC' },
     });
 

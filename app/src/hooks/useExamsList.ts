@@ -1,16 +1,19 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCsvActions } from '@/hooks/useCsvActions';
 import { useFeedback } from '@/hooks/useFeedback';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
 import {
   deleteExamById,
+  exportExamsCsv,
+  importExamsCsv,
   listExams,
   updateExamById,
   type UpdateExamPayload,
 } from '@/services/exams.service';
 import type { PaginatedResult, SortOrder } from '@/types/api';
-import type { Exam } from '@/types/exam';
+import type { Exam, ExamListSortBy } from '@/types/exam';
 import { getRequestErrorMessage } from '@/utils/request';
 
 const PAGE_SIZE = 8;
@@ -44,15 +47,25 @@ export const useExamsList = () => {
   const [result, setResult] = useState<PaginatedResult<Exam>>(() => createInitialPaginatedResult());
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [sortBy, setSortBy] = useState<ExamListSortBy>('createdAt');
   const [sortOrder, setSortOrder] = useState<SortOrder>('DESC');
   const [editingExamId, setEditingExamId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<ExamsEditFormState | null>(null);
 
-  const fetchExams = useCallback(async (page: number, nextSortOrder: SortOrder) => {
+  const fetchExams = useCallback(async (
+    page: number,
+    nextSortOrder: SortOrder,
+    nextSortBy: ExamListSortBy,
+  ) => {
     setIsLoading(true);
 
     try {
-      const listResult = await listExams({ page, limit: PAGE_SIZE, sortOrder: nextSortOrder });
+      const listResult = await listExams({
+        page,
+        limit: PAGE_SIZE,
+        sortOrder: nextSortOrder,
+        sortBy: nextSortBy,
+      });
       setResult(listResult);
     } catch (error) {
       publish('error', getRequestErrorMessage(error));
@@ -62,8 +75,8 @@ export const useExamsList = () => {
   }, [publish]);
 
   useEffect(() => {
-    void fetchExams(result.page, sortOrder);
-  }, [fetchExams, result.page, sortOrder]);
+    void fetchExams(result.page, sortOrder, sortBy);
+  }, [fetchExams, result.page, sortBy, sortOrder]);
 
   const setPage = useCallback((nextPage: number) => {
     setResult((currentState) => ({
@@ -74,6 +87,14 @@ export const useExamsList = () => {
 
   const updateSortOrder = useCallback((nextSortOrder: SortOrder) => {
     setSortOrder(nextSortOrder);
+    setResult((currentState) => ({
+      ...currentState,
+      page: 1,
+    }));
+  }, []);
+
+  const updateSortBy = useCallback((nextSortBy: ExamListSortBy) => {
+    setSortBy(nextSortBy);
     setResult((currentState) => ({
       ...currentState,
       page: 1,
@@ -149,13 +170,13 @@ export const useExamsList = () => {
       await updateExamById(editingExamId, payload);
       publish('success', 'Exame atualizado com sucesso.');
       cancelEdit();
-      await fetchExams(result.page, sortOrder);
+      await fetchExams(result.page, sortOrder, sortBy);
     } catch (error) {
       publish('error', getRequestErrorMessage(error));
     } finally {
       setIsSaving(false);
     }
-  }, [canManageExams, cancelEdit, editForm, editingExamId, fetchExams, publish, result.page, sortOrder]);
+  }, [canManageExams, cancelEdit, editForm, editingExamId, fetchExams, publish, result.page, sortBy, sortOrder]);
 
   const deleteExam = useCallback(async (examId: string) => {
     if (!canManageExams) {
@@ -171,16 +192,33 @@ export const useExamsList = () => {
       if (shouldGoToPreviousPage) {
         setPage(result.page - 1);
       } else {
-        await fetchExams(result.page, sortOrder);
+        await fetchExams(result.page, sortOrder, sortBy);
       }
     } catch (error) {
       publish('error', getRequestErrorMessage(error));
     } finally {
       setIsSaving(false);
     }
-  }, [canManageExams, fetchExams, publish, result.data.length, result.page, setPage, sortOrder]);
+  }, [canManageExams, fetchExams, publish, result.data.length, result.page, setPage, sortBy, sortOrder]);
 
   const exams = useMemo(() => result.data, [result.data]);
+  const refreshCurrentPage = useCallback(async () => {
+    await fetchExams(result.page, sortOrder, sortBy);
+  }, [fetchExams, result.page, sortBy, sortOrder]);
+
+  const {
+    isImportingCsv,
+    isExportingCsv,
+    isCsvBusy,
+    importCsvFile,
+    exportCsvFile,
+  } = useCsvActions({
+    canManage: canManageExams,
+    resourceLabel: 'exames',
+    importCsv: importExamsCsv,
+    exportCsv: exportExamsCsv,
+    reloadList: refreshCurrentPage,
+  });
 
   return {
     exams,
@@ -189,16 +227,23 @@ export const useExamsList = () => {
     totalPages: result.totalPages,
     isLoading,
     isSaving,
+    sortBy,
     sortOrder,
     canManageExams,
     editingExamId,
     editForm,
     setPage,
+    updateSortBy,
     updateSortOrder,
     startEdit,
     cancelEdit,
     setEditField,
     saveEdit,
     deleteExam,
+    isImportingCsv,
+    isExportingCsv,
+    isCsvBusy,
+    importCsvFile,
+    exportCsvFile,
   };
 };

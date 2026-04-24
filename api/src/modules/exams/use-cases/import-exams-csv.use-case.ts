@@ -7,6 +7,7 @@ import {
 } from '@/domain/commons/utils/csv-field.util';
 import {
   assertRequiredCsvHeaders,
+  deduplicateCsvRows,
   parseCsvDocument,
 } from '@/domain/commons/utils/csv.util';
 import { bumpExamsListCacheVersion } from '@/domain/commons/utils/exam-cache.util';
@@ -35,6 +36,7 @@ export class ImportExamsCsvUseCase implements IImportExamsCsvUseCase {
     assertAdmin(input.user, 'Only admin users can import exams CSV');
 
     const { headers, rows } = this.parseCsv(input.csvContent);
+    const { uniqueRows, duplicateRows } = deduplicateCsvRows(rows);
     this.assertHeaders(headers, [
       'name',
       'durationMinutes',
@@ -46,13 +48,12 @@ export class ImportExamsCsvUseCase implements IImportExamsCsvUseCase {
       processedRows: rows.length,
       createdRows: 0,
       updatedRows: 0,
-      skippedRows: 0,
+      skippedRows: duplicateRows.length,
       errors: [],
     };
 
-    for (let index = 0; index < rows.length; index += 1) {
-      const row = rows[index];
-      const rowNumber = index + 2;
+    for (let index = 0; index < uniqueRows.length; index += 1) {
+      const { row, rowNumber } = uniqueRows[index];
 
       try {
         const action = await this.processRow(row, rowNumber);

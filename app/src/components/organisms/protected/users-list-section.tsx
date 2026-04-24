@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import { ListActionButton } from '@/components/atoms/list-action-button';
 import { ListFormInput, ListFormSelect } from '@/components/atoms/list-form-controls';
 import { ActionConfirmDialog } from '@/components/molecules/action-confirm-dialog';
+import { ListCsvControls } from '@/components/molecules/list-csv-controls';
 import {
   PaginatedListTable,
   type PaginatedListColumn,
@@ -13,7 +14,7 @@ import { PageContainer, PageDescription, PageTitle } from '@/components/shared/p
 import { useActionConfirmation } from '@/hooks/useActionConfirmation';
 import { useUsersList } from '@/hooks/useUsersList';
 import type { SortOrder } from '@/types/api';
-import type { User } from '@/types/user';
+import type { User, UserListSortBy } from '@/types/user';
 
 const Controls = styled.div.attrs({
   className: 'flex items-center gap-2',
@@ -41,6 +42,10 @@ const FilterWrapper = styled.div.attrs({
   className: 'flex items-center gap-2',
 })``;
 
+const HeaderRightContent = styled.div.attrs({
+  className: 'flex flex-wrap items-center justify-end gap-2',
+})``;
+
 const FilterLabel = styled.label.attrs({
   className: 'text-xs font-medium sm:text-sm',
 })`
@@ -48,8 +53,14 @@ const FilterLabel = styled.label.attrs({
 `;
 
 const sortOptions: Array<{ value: SortOrder; label: string }> = [
-  { value: 'DESC', label: 'Mais recentes' },
-  { value: 'ASC', label: 'Mais antigos' },
+  { value: 'DESC', label: 'Decrescente' },
+  { value: 'ASC', label: 'Crescente' },
+];
+
+const sortByOptions: Array<{ value: UserListSortBy; label: string }> = [
+  { value: 'createdAt', label: 'Data de criação' },
+  { value: 'profile', label: 'Perfil' },
+  { value: 'isActive', label: 'Status' },
 ];
 
 const toProfileLabel = (profile: 'ADMIN' | 'CLIENT'): string => {
@@ -62,6 +73,7 @@ export function UsersListSection() {
     page,
     total,
     totalPages,
+    sortBy,
     sortOrder,
     isLoading,
     isSaving,
@@ -70,12 +82,18 @@ export function UsersListSection() {
     editForm,
     authenticatedUserId,
     setPage,
+    updateSortBy,
     updateSortOrder,
     startEdit,
     cancelEdit,
     setEditField,
     saveEdit,
     deleteUser,
+    isImportingCsv,
+    isExportingCsv,
+    isCsvBusy,
+    importCsvFile,
+    exportCsvFile,
   } = useUsersList();
   const {
     isOpen,
@@ -127,7 +145,21 @@ export function UsersListSection() {
       {
         key: 'email',
         header: 'E-mail',
-        render: (user) => user.email,
+        render: (user) => {
+          if (editingUserId === user.id && editForm) {
+            return (
+              <ListFormInput
+                aria-label="E-mail do usuário"
+                disabled={isSaving}
+                type="email"
+                value={editForm.email}
+                onChange={(event) => setEditField('email', event.target.value)}
+              />
+            );
+          }
+
+          return user.email;
+        },
       },
       {
         key: 'profile',
@@ -185,7 +217,7 @@ export function UsersListSection() {
     const actionColumn: PaginatedListColumn<User> = {
       key: 'actions',
       header: 'Ações',
-      align: 'right',
+      align: 'center',
       render: (user) => {
         if (editingUserId === user.id) {
           return (
@@ -236,22 +268,55 @@ export function UsersListSection() {
 
   const headerRight = useMemo(() => {
     return (
-      <FilterWrapper>
-        <FilterLabel htmlFor="users-sort-order">Ordenar</FilterLabel>
-        <ListFormSelect
-          id="users-sort-order"
-          value={sortOrder}
-          onChange={(event) => updateSortOrder(event.target.value as SortOrder)}
-        >
-          {sortOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </ListFormSelect>
-      </FilterWrapper>
+      <HeaderRightContent>
+        <FilterWrapper>
+          <FilterLabel htmlFor="users-sort-by">Filtrar</FilterLabel>
+          <ListFormSelect
+            id="users-sort-by"
+            value={sortBy}
+            onChange={(event) => updateSortBy(event.target.value as UserListSortBy)}
+          >
+            {sortByOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </ListFormSelect>
+          <ListFormSelect
+            aria-label="Ordem dos resultados"
+            id="users-sort-order"
+            value={sortOrder}
+            onChange={(event) => updateSortOrder(event.target.value as SortOrder)}
+          >
+            {sortOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </ListFormSelect>
+        </FilterWrapper>
+        <ListCsvControls
+          isDisabled={isCsvBusy || isSaving}
+          isExporting={isExportingCsv}
+          isImporting={isImportingCsv}
+          resourceLabel="usuários"
+          onExportCsv={exportCsvFile}
+          onImportCsv={importCsvFile}
+        />
+      </HeaderRightContent>
     );
-  }, [sortOrder, updateSortOrder]);
+  }, [
+    exportCsvFile,
+    importCsvFile,
+    isCsvBusy,
+    isExportingCsv,
+    isImportingCsv,
+    isSaving,
+    sortBy,
+    sortOrder,
+    updateSortBy,
+    updateSortOrder,
+  ]);
 
   if (!canManageUsers) {
     return (

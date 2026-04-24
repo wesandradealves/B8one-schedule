@@ -2,7 +2,9 @@ import api from '@/services/api';
 import { executeRequest } from '@/utils/request';
 import {
   deleteExamById,
+  exportExamsCsv,
   getExamById,
+  importExamsCsv,
   listExams,
   updateExamById,
 } from '@/services/exams.service';
@@ -11,6 +13,7 @@ jest.mock('@/services/api', () => ({
   __esModule: true,
   default: {
     get: jest.fn(),
+    post: jest.fn(),
     patch: jest.fn(),
     delete: jest.fn(),
   },
@@ -23,6 +26,7 @@ jest.mock('@/utils/request', () => ({
 describe('exams service', () => {
   const mockedApi = api as unknown as {
     get: jest.Mock;
+    post: jest.Mock;
     patch: jest.Mock;
     delete: jest.Mock;
   };
@@ -40,7 +44,13 @@ describe('exams service', () => {
       totalPages: 0,
     });
 
-    const params = { page: 2, limit: 20, search: 'cardio' };
+    const params = {
+      page: 2,
+      limit: 20,
+      search: 'cardio',
+      sortBy: 'priceCents' as const,
+      sortOrder: 'ASC' as const,
+    };
     await listExams(params);
 
     expect(executeRequest).toHaveBeenCalledTimes(1);
@@ -116,5 +126,38 @@ describe('exams service', () => {
     const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
     await requestFactory();
     expect(mockedApi.delete).toHaveBeenCalledWith('/exams/exam-1');
+  });
+
+  it('should import exams csv through centralized request flow', async () => {
+    (executeRequest as jest.Mock).mockResolvedValue({
+      processedRows: 2,
+      createdRows: 1,
+      updatedRows: 1,
+      skippedRows: 0,
+      errors: [],
+    });
+
+    await importExamsCsv('name,durationMinutes,priceCents,isActive\nExam,30,1000,true');
+
+    expect(executeRequest).toHaveBeenCalledTimes(1);
+    const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
+    await requestFactory();
+    expect(mockedApi.post).toHaveBeenCalledWith('/exams/import/csv', {
+      csvContent: 'name,durationMinutes,priceCents,isActive\nExam,30,1000,true',
+    });
+  });
+
+  it('should export exams csv through centralized request flow', async () => {
+    (executeRequest as jest.Mock).mockResolvedValue({
+      fileName: 'exams.csv',
+      csvContent: 'name,durationMinutes,priceCents,isActive',
+    });
+
+    await exportExamsCsv();
+
+    expect(executeRequest).toHaveBeenCalledTimes(1);
+    const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
+    await requestFactory();
+    expect(mockedApi.get).toHaveBeenCalledWith('/exams/export/csv');
   });
 });

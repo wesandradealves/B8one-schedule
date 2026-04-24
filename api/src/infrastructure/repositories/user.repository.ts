@@ -1,29 +1,55 @@
 import { UserEntity } from '@/domain/entities/user.entity';
 import { SortOrder } from '@/domain/commons/enums/sort-order.enum';
+import { UserListSortBy } from '@/domain/commons/enums/user-list-sort-by.enum';
 import {
   CreateUserInput,
   IUserRepository,
+  UsersPaginationQuery,
   UpdateUserInput,
 } from '@/domain/interfaces/repositories/user.repository';
-import { PaginatedResult, PaginationQuery } from '@/domain/commons/interfaces/pagination.interface';
-import { Injectable } from '@nestjs/common';
+import { PaginatedResult } from '@/domain/commons/interfaces/pagination.interface';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 
 @Injectable()
 export class UserRepository implements IUserRepository {
+  private static readonly DUPLICATE_KEY_ERROR_CODE = '23505';
+  private static readonly EMAIL_UNIQUE_CONSTRAINTS = new Set([
+    'UQ_users_email',
+    'UQ_users_email_lower',
+  ]);
+
   constructor(
     @InjectRepository(UserEntity)
     private readonly repository: Repository<UserEntity>,
   ) {}
 
-  async listAll(pagination: PaginationQuery): Promise<PaginatedResult<UserEntity>> {
+  async listAll(
+    pagination: UsersPaginationQuery,
+  ): Promise<PaginatedResult<UserEntity>> {
     const sortOrder = pagination.sortOrder ?? SortOrder.DESC;
+    const sortBy = pagination.sortBy ?? UserListSortBy.CREATED_AT;
 
-    const [data, total] = await this.repository
-      .createQueryBuilder('user')
-      .orderBy('user.createdAt', sortOrder)
-      .addOrderBy('user.id', sortOrder)
+    const queryBuilder = this.repository.createQueryBuilder('user');
+
+    if (sortBy === UserListSortBy.PROFILE) {
+      queryBuilder
+        .orderBy('user.profile', sortOrder)
+        .addOrderBy('user.createdAt', sortOrder)
+        .addOrderBy('user.id', sortOrder);
+    } else if (sortBy === UserListSortBy.IS_ACTIVE) {
+      queryBuilder
+        .orderBy('user.isActive', sortOrder)
+        .addOrderBy('user.createdAt', sortOrder)
+        .addOrderBy('user.id', sortOrder);
+    } else {
+      queryBuilder
+        .orderBy('user.createdAt', sortOrder)
+        .addOrderBy('user.id', sortOrder);
+    }
+
+    const [data, total] = await queryBuilder
       .skip((pagination.page - 1) * pagination.limit)
       .take(pagination.limit)
       .getManyAndCount();
@@ -69,19 +95,29 @@ export class UserRepository implements IUserRepository {
   }
 
   async createUser(input: CreateUserInput): Promise<UserEntity> {
-    const insertResult = await this.repository
-      .createQueryBuilder()
-      .insert()
-      .into(UserEntity)
-      .values({
-        fullName: input.fullName,
-        email: input.email.trim().toLowerCase(),
-        passwordHash: input.passwordHash,
-        profile: input.profile,
-        isActive: input.isActive,
-      })
-      .returning('id')
-      .execute();
+    let insertResult: { identifiers: Array<{ id?: string }> };
+
+    try {
+      insertResult = await this.repository
+        .createQueryBuilder()
+        .insert()
+        .into(UserEntity)
+        .values({
+          fullName: input.fullName,
+          email: input.email.trim().toLowerCase(),
+          passwordHash: input.passwordHash,
+          profile: input.profile,
+          isActive: input.isActive,
+        })
+        .returning('id')
+        .execute();
+    } catch (error) {
+      if (this.isDuplicateEmailError(error)) {
+        throw new BadRequestException('E-mail already in use');
+      }
+
+      throw error;
+    }
 
     const userId = String(insertResult.identifiers[0]?.id);
     return this.findByIdOrFail(userId);
@@ -110,12 +146,20 @@ export class UserRepository implements IUserRepository {
       return this.findById(id);
     }
 
-    await this.repository
-      .createQueryBuilder()
-      .update(UserEntity)
-      .set(payload)
-      .where('id = :id', { id })
-      .execute();
+    try {
+      await this.repository
+        .createQueryBuilder()
+        .update(UserEntity)
+        .set(payload)
+        .where('id = :id', { id })
+        .execute();
+    } catch (error) {
+      if (this.isDuplicateEmailError(error)) {
+        throw new BadRequestException('E-mail already in use');
+      }
+
+      throw error;
+    }
 
     return this.findById(id);
   }
@@ -136,5 +180,20 @@ export class UserRepository implements IUserRepository {
       .createQueryBuilder('user')
       .where('user.id = :id', { id })
       .getOneOrFail();
+  }
+
+  private isDuplicateEmailError(error: unknown): boolean {
+    if (!(error instanceof QueryFailedError)) {
+      return false;
+    }
+
+    const driverError = (error as QueryFailedError & {
+      driverError?: { code?: string; constraint?: string };
+    }).driverError;
+
+    return (
+      driverError?.code === UserRepository.DUPLICATE_KEY_ERROR_CODE &&
+      UserRepository.EMAIL_UNIQUE_CONSTRAINTS.has(driverError.constraint ?? '')
+    );
   }
 }

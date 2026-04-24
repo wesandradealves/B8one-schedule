@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import { paginationQuerySchema } from '@/modules/shared/utils/pagination-query.schema';
+import { AppointmentListSortBy } from '@/domain/commons/enums/appointment-list-sort-by.enum';
 
 export const listAppointmentsQuerySchema = paginationQuerySchema.extend({
+  sortBy: z.nativeEnum(AppointmentListSortBy).default(AppointmentListSortBy.SCHEDULED_AT),
   scheduledDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)

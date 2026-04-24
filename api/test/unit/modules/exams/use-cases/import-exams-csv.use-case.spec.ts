@@ -99,4 +99,34 @@ describe('ImportExamsCsvUseCase', () => {
       skippedRows: 0,
     });
   });
+
+  it('skips duplicated rows from the same csv payload', async () => {
+    const { useCase, examRepository, messagingProvider } = createSut();
+
+    examRepository.createExam.mockResolvedValue(makeExamEntity({ id: 'new-exam-id' }));
+
+    const output = await useCase.execute({
+      user: makeAuthenticatedUser({ profile: UserProfile.ADMIN }),
+      csvContent:
+        'name,description,durationMinutes,priceCents,isActive\n' +
+        'Duplicado,Desc,30,1000,true\n' +
+        'Duplicado,Desc,30,1000,true',
+    });
+
+    expect(output).toEqual({
+      processedRows: 2,
+      createdRows: 1,
+      updatedRows: 0,
+      skippedRows: 1,
+      errors: [],
+    });
+    expect(examRepository.createExam).toHaveBeenCalledTimes(1);
+    expect(messagingProvider.publish).toHaveBeenCalledWith('exams.csv.imported', {
+      importedByUserId: 'user-id-1',
+      processedRows: 2,
+      createdRows: 1,
+      updatedRows: 0,
+      skippedRows: 1,
+    });
+  });
 });

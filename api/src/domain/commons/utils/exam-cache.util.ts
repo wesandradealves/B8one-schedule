@@ -1,10 +1,11 @@
-import { PaginationQuery } from '@/domain/commons/interfaces/pagination.interface';
 import { SortOrder } from '@/domain/commons/enums/sort-order.enum';
+import { ExamListSortBy } from '@/domain/commons/enums/exam-list-sort-by.enum';
 import {
   EXAMS_LIST_CACHE_TTL_SECONDS,
   EXAMS_LIST_CACHE_VERSION_KEY,
 } from '@/domain/commons/constants/exam-cache.constant';
 import { ICacheProvider } from '@/domain/interfaces/providers/cache.provider';
+import { ExamPaginationQuery } from '@/domain/interfaces/repositories/exam.repository';
 
 const EXAMS_LIST_CACHE_KEY_PREFIX = 'exams:list';
 
@@ -13,10 +14,11 @@ export type ExamsListScope = 'all' | 'active';
 export function buildExamsListCacheKey(
   version: string,
   scope: ExamsListScope,
-  pagination: PaginationQuery,
+  pagination: ExamPaginationQuery,
 ): string {
   const sortOrder = pagination.sortOrder ?? SortOrder.DESC;
-  return `${EXAMS_LIST_CACHE_KEY_PREFIX}:v:${version}:scope:${scope}:page:${pagination.page}:limit:${pagination.limit}:sort:${sortOrder}`;
+  const sortBy = pagination.sortBy ?? ExamListSortBy.CREATED_AT;
+  return `${EXAMS_LIST_CACHE_KEY_PREFIX}:v:${version}:scope:${scope}:page:${pagination.page}:limit:${pagination.limit}:sortBy:${sortBy}:sort:${sortOrder}`;
 }
 
 export async function getExamsListCacheVersion(

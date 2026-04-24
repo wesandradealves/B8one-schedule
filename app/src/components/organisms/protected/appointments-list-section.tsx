@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import { ListActionButton } from '@/components/atoms/list-action-button';
 import { ListFormInput, ListFormSelect } from '@/components/atoms/list-form-controls';
 import { ActionConfirmDialog } from '@/components/molecules/action-confirm-dialog';
+import { ListCsvControls } from '@/components/molecules/list-csv-controls';
 import {
   PaginatedListTable,
   type PaginatedListColumn,
@@ -13,7 +14,11 @@ import { PageContainer, PageDescription, PageTitle } from '@/components/shared/p
 import { useActionConfirmation } from '@/hooks/useActionConfirmation';
 import { useAppointmentsList } from '@/hooks/useAppointmentsList';
 import type { SortOrder } from '@/types/api';
-import type { Appointment, AppointmentStatus } from '@/types/appointment';
+import type {
+  Appointment,
+  AppointmentListSortBy,
+  AppointmentStatus,
+} from '@/types/appointment';
 import { formatDateTime } from '@/utils/format';
 
 const Controls = styled.div.attrs({
@@ -22,6 +27,10 @@ const Controls = styled.div.attrs({
 
 const FilterWrapper = styled.div.attrs({
   className: 'flex items-center gap-2',
+})``;
+
+const HeaderRightContent = styled.div.attrs({
+  className: 'flex flex-wrap items-center justify-end gap-2',
 })``;
 
 const FilterLabel = styled.label.attrs({
@@ -43,8 +52,13 @@ const toStatusLabel = (status: string): string => {
 };
 
 const sortOptions: Array<{ value: SortOrder; label: string }> = [
-  { value: 'DESC', label: 'Mais recentes' },
-  { value: 'ASC', label: 'Mais antigos' },
+  { value: 'DESC', label: 'Decrescente' },
+  { value: 'ASC', label: 'Crescente' },
+];
+
+const sortByOptions: Array<{ value: AppointmentListSortBy; label: string }> = [
+  { value: 'scheduledAt', label: 'Data do agendamento' },
+  { value: 'status', label: 'Status' },
 ];
 
 export function AppointmentsListSection() {
@@ -54,6 +68,7 @@ export function AppointmentsListSection() {
     total,
     totalPages,
     scheduledDateFilter,
+    sortBy,
     sortOrder,
     isLoading,
     isSaving,
@@ -63,6 +78,7 @@ export function AppointmentsListSection() {
     editForm,
     setPage,
     updateScheduledDateFilter,
+    updateSortBy,
     updateSortOrder,
     startEdit,
     cancelEdit,
@@ -70,6 +86,11 @@ export function AppointmentsListSection() {
     saveEdit,
     cancelAppointment,
     deleteAppointment,
+    isImportingCsv,
+    isExportingCsv,
+    isCsvBusy,
+    importCsvFile,
+    exportCsvFile,
   } = useAppointmentsList();
   const {
     isOpen,
@@ -119,36 +140,74 @@ export function AppointmentsListSection() {
 
   const headerRight = useMemo(() => {
     return (
-      <FilterWrapper>
-        <FilterLabel htmlFor="appointments-filter-date">Data</FilterLabel>
-        <ListFormInput
-          id="appointments-filter-date"
-          type="date"
-          value={scheduledDateFilter}
-          onChange={(event) => updateScheduledDateFilter(event.target.value)}
-        />
-        <ListActionButton
-          disabled={!scheduledDateFilter}
-          variant="cancel"
-          onClick={() => updateScheduledDateFilter('')}
-        >
-          Limpar
-        </ListActionButton>
-        <FilterLabel htmlFor="appointments-sort-order">Ordenar</FilterLabel>
-        <ListFormSelect
-          id="appointments-sort-order"
-          value={sortOrder}
-          onChange={(event) => updateSortOrder(event.target.value as SortOrder)}
-        >
-          {sortOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </ListFormSelect>
-      </FilterWrapper>
+      <HeaderRightContent>
+        <FilterWrapper>
+          <FilterLabel htmlFor="appointments-filter-date">Data</FilterLabel>
+          <ListFormInput
+            id="appointments-filter-date"
+            type="date"
+            value={scheduledDateFilter}
+            onChange={(event) => updateScheduledDateFilter(event.target.value)}
+          />
+          <ListActionButton
+            disabled={!scheduledDateFilter}
+            variant="cancel"
+            onClick={() => updateScheduledDateFilter('')}
+          >
+            Limpar
+          </ListActionButton>
+          <FilterLabel htmlFor="appointments-sort-by">Filtrar</FilterLabel>
+          <ListFormSelect
+            id="appointments-sort-by"
+            value={sortBy}
+            onChange={(event) => updateSortBy(event.target.value as AppointmentListSortBy)}
+          >
+            {sortByOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </ListFormSelect>
+          <ListFormSelect
+            aria-label="Ordem dos resultados"
+            id="appointments-sort-order"
+            value={sortOrder}
+            onChange={(event) => updateSortOrder(event.target.value as SortOrder)}
+          >
+            {sortOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </ListFormSelect>
+        </FilterWrapper>
+        {canManageAppointments ? (
+          <ListCsvControls
+            isDisabled={isCsvBusy || isSaving}
+            isExporting={isExportingCsv}
+            isImporting={isImportingCsv}
+            resourceLabel="agendamentos"
+            onExportCsv={exportCsvFile}
+            onImportCsv={importCsvFile}
+          />
+        ) : null}
+      </HeaderRightContent>
     );
-  }, [scheduledDateFilter, sortOrder, updateScheduledDateFilter, updateSortOrder]);
+  }, [
+    canManageAppointments,
+    exportCsvFile,
+    importCsvFile,
+    isCsvBusy,
+    isExportingCsv,
+    isImportingCsv,
+    isSaving,
+    scheduledDateFilter,
+    sortBy,
+    sortOrder,
+    updateScheduledDateFilter,
+    updateSortBy,
+    updateSortOrder,
+  ]);
 
   const columns = useMemo<PaginatedListColumn<Appointment>[]>(() => {
     const baseColumns: PaginatedListColumn<Appointment>[] = [
@@ -246,7 +305,7 @@ export function AppointmentsListSection() {
     const actionColumn: PaginatedListColumn<Appointment> = {
       key: 'actions',
       header: 'Ações',
-      align: 'right',
+      align: 'center',
       render: (appointment) => {
         if (editingAppointmentId === appointment.id) {
           return (

@@ -32,7 +32,7 @@ const usersSeedData = async (): Promise<Array<Partial<UserEntity>>> => {
     },
     {
       fullName: 'Cliente B8one',
-      email: 'cliente@b8one.com',
+      email: 'cortney.reichel43@ethereal.email',
       passwordHash: clientPasswordHash,
       profile: UserProfile.CLIENT,
       isActive: true,
@@ -67,6 +67,28 @@ async function runSeed(): Promise<void> {
       .getOne();
 
     if (!exists) {
+      if (user.profile === UserProfile.ADMIN) {
+        const existingAdmin = await userRepository
+          .createQueryBuilder('user')
+          .where('user.profile = :profile', { profile: UserProfile.ADMIN })
+          .getOne();
+
+        if (existingAdmin) {
+          await userRepository
+            .createQueryBuilder()
+            .update(UserEntity)
+            .set({
+              fullName: user.fullName,
+              email: user.email,
+              passwordHash: user.passwordHash,
+              isActive: user.isActive,
+            })
+            .where('id = :id', { id: existingAdmin.id })
+            .execute();
+          continue;
+        }
+      }
+
       await userRepository
         .createQueryBuilder()
         .insert()

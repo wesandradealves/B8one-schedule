@@ -26,10 +26,9 @@ describe('ProtectedTopbar', () => {
     });
   });
 
-  it('should render app title and user pill with derived initials', () => {
+  it('should render only user pill with derived initials', () => {
     render(<ProtectedTopbar />);
 
-    expect(screen.getByText('Agendamentos')).toBeInTheDocument();
     expect(screen.getByText('CR')).toBeInTheDocument();
     expect(screen.getByText('Cortney Reichel43')).toBeInTheDocument();
   });

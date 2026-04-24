@@ -50,7 +50,9 @@ describe('route templates', () => {
     );
 
     expect(screen.getByText('protected-content')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Agendamentos' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Iniciais do usuário Admin/i }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Início' })).toBeInTheDocument();
     expect(screen.getByText('Feito com')).toBeInTheDocument();
   });
