@@ -159,6 +159,30 @@ describe('frontend architecture patterns', () => {
     expect(authInlineMessageSource).toContain('aria-live');
   });
 
+  it('should keep protected shell composed by dedicated organisms and centralized logout action', () => {
+    const protectedTemplateSource = readFile(
+      'src/components/templates/protected-routes-template.tsx',
+    );
+    const protectedTopbarSource = readFile(
+      'src/components/organisms/protected/protected-topbar.tsx',
+    );
+    const protectedSidebarSource = readFile(
+      'src/components/organisms/protected/protected-sidebar.tsx',
+    );
+    const protectedUserMenuSource = readFile(
+      'src/components/molecules/protected-user-menu.tsx',
+    );
+
+    expect(protectedTemplateSource).toContain('ProtectedSidebar');
+    expect(protectedTemplateSource).toContain('ProtectedTopbar');
+    expect(protectedTemplateSource).toContain('ProtectedFooter');
+    expect(protectedTopbarSource).toContain('ProtectedUserMenu');
+    expect(protectedTopbarSource).toContain('useUserDisplay');
+    expect(protectedSidebarSource).toContain('useProtectedNavigation');
+    expect(protectedUserMenuSource).toContain('LogoutLink');
+    expect(protectedUserMenuSource).not.toContain('useRouter');
+  });
+
   it('should keep logout flow centralized in a dedicated custom hook', () => {
     const useLogoutSource = readFile('src/hooks/useLogout.ts');
     const logoutLinkSource = readFile('src/components/shared/logout-link.tsx');
@@ -186,11 +210,25 @@ describe('frontend architecture patterns', () => {
     });
   });
 
+  it('should keep jwt parsing centralized in auth-token util and consumed by dedicated auth hook/context', () => {
+    const authTokenSource = readFile('src/utils/auth-token.ts');
+    const authContextSource = readFile('src/context/auth.tsx');
+    const authTokenHookSource = readFile('src/hooks/useAuthTokenSession.ts');
+    const middlewareSource = readFile('src/middleware.ts');
+
+    expect(authTokenSource).toContain('getAuthSessionFromToken');
+    expect(authContextSource).toContain('useAuthTokenSession');
+    expect(authTokenHookSource).toContain('getAuthSessionFromToken');
+    expect(middlewareSource).toContain('getAuthSessionFromToken');
+  });
+
   it('should keep middleware matcher aligned with protected app routing contract', () => {
     const middlewareSource = readFile('src/middleware.ts');
     expect(middlewareSource.includes("matcher: ['/', '/login', '/app/:path*']")).toBe(true);
     expect(middlewareSource.includes("if (pathname === '/')")).toBe(true);
     expect(middlewareSource.includes('APP_ROUTES.app')).toBe(true);
     expect(middlewareSource.includes('APP_ROUTES.login')).toBe(true);
+    expect(middlewareSource.includes('getAuthSessionFromToken')).toBe(true);
+    expect(middlewareSource.includes('isUsersPath')).toBe(true);
   });
 });

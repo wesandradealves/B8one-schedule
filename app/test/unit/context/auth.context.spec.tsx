@@ -12,22 +12,40 @@ jest.mock('@/utils/cookie', () => ({
 }));
 
 describe('AuthContext', () => {
+  const baseNowInSeconds = Math.floor(Date.now() / 1000);
+
+  const createAccessToken = (payload: Record<string, unknown>) => {
+    return `header.${Buffer.from(JSON.stringify(payload)).toString('base64url')}.signature`;
+  };
+
   const wrapper = ({ children }: { children: React.ReactNode }) => {
     return <AuthProvider>{children}</AuthProvider>;
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    getCookieMock.mockReturnValue('boot-token');
+    getCookieMock.mockReturnValue(
+      createAccessToken({
+        sub: 'boot-user',
+        email: 'boot@b8one.com',
+        profile: 'CLIENT',
+        exp: baseNowInSeconds + 300,
+      }),
+    );
   });
 
-  it('should bootstrap token from cookie and expose auth state', async () => {
+  it('should bootstrap token from cookie and expose auth state only when token is valid', async () => {
     const { result } = renderHook(() => useAuthContext(), { wrapper });
 
     await waitFor(() => {
-      expect(result.current.token).toBe('boot-token');
+      expect(result.current.token).not.toBeNull();
     });
 
+    expect(result.current.user).toEqual({
+      id: 'boot-user',
+      email: 'boot@b8one.com',
+      profile: 'CLIENT',
+    });
     expect(result.current.isAuthenticated).toBe(true);
   });
 
@@ -35,27 +53,31 @@ describe('AuthContext', () => {
     const { result } = renderHook(() => useAuthContext(), { wrapper });
 
     await waitFor(() => {
-      expect(result.current.token).toBe('boot-token');
+      expect(result.current.token).not.toBeNull();
     });
 
     act(() => {
-      result.current.setSession('new-token', {
-        id: '1',
-        email: 'admin@b8one.com',
-        profile: 'ADMIN',
-      });
+      result.current.setSession(
+        createAccessToken({
+          sub: 'admin-1',
+          email: 'admin@b8one.com',
+          profile: 'ADMIN',
+          exp: baseNowInSeconds + 300,
+        }),
+      );
     });
 
-    expect(result.current.token).toBe('new-token');
+    expect(result.current.token).not.toBeNull();
     expect(result.current.user?.profile).toBe('ADMIN');
     expect(setCookieMock).toHaveBeenCalled();
 
     act(() => {
-      result.current.setSession('token-without-user');
+      result.current.setSession('invalid-token');
     });
 
-    expect(result.current.token).toBe('token-without-user');
+    expect(result.current.token).toBeNull();
     expect(result.current.user).toBeNull();
+    expect(removeCookieMock).toHaveBeenCalledTimes(1);
 
     act(() => {
       result.current.clearSession();
@@ -63,6 +85,63 @@ describe('AuthContext', () => {
 
     expect(result.current.token).toBeNull();
     expect(result.current.user).toBeNull();
+    expect(removeCookieMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('should derive authenticated user from jwt payload', async () => {
+    const tokenFromCookie = createAccessToken({
+      sub: 'user-1',
+      email: 'admin@b8one.com',
+      profile: 'ADMIN',
+      exp: baseNowInSeconds + 300,
+    });
+    getCookieMock.mockReturnValue(tokenFromCookie);
+
+    const { result } = renderHook(() => useAuthContext(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.user).toEqual({
+        id: 'user-1',
+        email: 'admin@b8one.com',
+        profile: 'ADMIN',
+      });
+    });
+
+    act(() => {
+      result.current.setSession(
+        createAccessToken({
+          sub: 'user-2',
+          email: 'client@b8one.com',
+          profile: 'CLIENT',
+          exp: baseNowInSeconds + 300,
+        }),
+      );
+    });
+
+    expect(result.current.user).toEqual({
+      id: 'user-2',
+      email: 'client@b8one.com',
+      profile: 'CLIENT',
+    });
+  });
+
+  it('should clear persisted cookie when token is expired', async () => {
+    getCookieMock.mockReturnValueOnce(
+      createAccessToken({
+        sub: 'expired-user',
+        email: 'expired@b8one.com',
+        profile: 'CLIENT',
+        exp: baseNowInSeconds - 1,
+      }),
+    );
+
+    const { result } = renderHook(() => useAuthContext(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.token).toBeNull();
+    });
+
+    expect(result.current.isAuthenticated).toBe(false);
     expect(removeCookieMock).toHaveBeenCalledTimes(1);
   });
 
