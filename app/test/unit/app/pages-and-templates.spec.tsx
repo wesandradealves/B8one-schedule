@@ -5,6 +5,10 @@ import ExamsPage, { metadata as examsMetadata } from '@/app/(protected)/app/exam
 import AppointmentsPage, {
   metadata as appointmentsMetadata,
 } from '@/app/(protected)/app/appointments/page';
+import UsersPage, { metadata as usersMetadata } from '@/app/(protected)/app/users/page';
+import MyAccountPage, {
+  metadata as myAccountMetadata,
+} from '@/app/(protected)/app/my-account/page';
 import ExamDetailsPage, { generateMetadata } from '@/app/(protected)/app/exams/[id]/page';
 import PublicTemplate from '@/app/(public)/template';
 import ProtectedTemplate from '@/app/(protected)/template';
@@ -14,9 +18,25 @@ jest.mock('@/components/organisms/auth/auth-flow-card', () => ({
   AuthFlowCard: () => <div>auth-flow-card</div>,
 }));
 
-jest.mock('@/components/shared/logout-link', () => ({
+jest.mock('@/hooks/useAuth', () => ({
   __esModule: true,
-  LogoutLink: () => <button type="button">Sair da conta</button>,
+  useAuth: () => ({
+    user: {
+      id: 'admin-1',
+      email: 'admin@b8one.com',
+      profile: 'ADMIN',
+    },
+  }),
+}));
+
+jest.mock('@/hooks/useLogout', () => ({
+  __esModule: true,
+  useLogout: () => jest.fn(),
+}));
+
+jest.mock('next/navigation', () => ({
+  __esModule: true,
+  usePathname: () => '/app',
 }));
 
 describe('app pages and route-group templates', () => {
@@ -24,6 +44,8 @@ describe('app pages and route-group templates', () => {
     expect(appMetadata.alternates?.canonical).toBe('/app');
     expect(examsMetadata.alternates?.canonical).toBe('/app/exams');
     expect(appointmentsMetadata.alternates?.canonical).toBe('/app/appointments');
+    expect(usersMetadata.alternates?.canonical).toBe('/app/users');
+    expect(myAccountMetadata.alternates?.canonical).toBe('/app/my-account');
   });
 
   it('should render static pages', () => {
@@ -32,13 +54,18 @@ describe('app pages and route-group templates', () => {
 
     render(<AppPage />);
     expect(screen.getByText('Área autenticada')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Sair da conta' }).length).toBeGreaterThan(0);
 
     render(<ExamsPage />);
     expect(screen.getByText('Exames')).toBeInTheDocument();
 
     render(<AppointmentsPage />);
     expect(screen.getByText('Agendamentos')).toBeInTheDocument();
+
+    render(<UsersPage />);
+    expect(screen.getByText('Usuários')).toBeInTheDocument();
+
+    render(<MyAccountPage />);
+    expect(screen.getByText('Minha conta')).toBeInTheDocument();
   });
 
   it('should render dynamic exam page and metadata', async () => {

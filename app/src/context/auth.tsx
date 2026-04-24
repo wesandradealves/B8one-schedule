@@ -12,12 +12,14 @@ import {
 import type { AuthUser } from '@/types/auth';
 import { getCookie, removeCookie, setCookie } from '@/utils/cookie';
 import { env } from '@/utils/env';
+import { getAuthSessionFromToken } from '@/utils/auth-token';
+import { useAuthTokenSession } from '@/hooks/useAuthTokenSession';
 
 interface AuthContextValue {
   token: string | null;
   user: AuthUser | null;
   isAuthenticated: boolean;
-  setSession: (token: string, user?: AuthUser | null) => void;
+  setSession: (token: string) => void;
   clearSession: () => void;
 }
 
@@ -25,39 +27,53 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<AuthUser | null>(null);
-
-  useEffect(() => {
-    const tokenFromCookie = getCookie(env.AUTH_COOKIE_NAME);
-    setToken(tokenFromCookie);
-  }, []);
-
-  const setSession = useCallback((nextToken: string, nextUser?: AuthUser | null) => {
-    setToken(nextToken);
-    setUser(nextUser ?? null);
-
-    setCookie(env.AUTH_COOKIE_NAME, nextToken, {
-      path: '/',
-      sameSite: 'Lax',
-      secure: typeof window !== 'undefined' && window.location.protocol === 'https:',
-    });
-  }, []);
+  const authSession = useAuthTokenSession(token);
+  const user = authSession?.user ?? null;
 
   const clearSession = useCallback(() => {
     setToken(null);
-    setUser(null);
     removeCookie(env.AUTH_COOKIE_NAME);
   }, []);
+
+  useEffect(() => {
+    const tokenFromCookie = getCookie(env.AUTH_COOKIE_NAME);
+    const sessionFromCookie = getAuthSessionFromToken(tokenFromCookie);
+
+    if (!sessionFromCookie) {
+      clearSession();
+      return;
+    }
+
+    setToken(tokenFromCookie);
+  }, [clearSession]);
+
+  const setSession = useCallback(
+    (nextToken: string) => {
+      const session = getAuthSessionFromToken(nextToken);
+      if (!session) {
+        clearSession();
+        return;
+      }
+
+      setToken(nextToken);
+      setCookie(env.AUTH_COOKIE_NAME, nextToken, {
+        path: '/',
+        sameSite: 'Lax',
+        secure: typeof window !== 'undefined' && window.location.protocol === 'https:',
+      });
+    },
+    [clearSession],
+  );
 
   const value = useMemo<AuthContextValue>(() => {
     return {
       token,
       user,
-      isAuthenticated: Boolean(token),
+      isAuthenticated: Boolean(authSession),
       setSession,
       clearSession,
     };
-  }, [clearSession, setSession, token, user]);
+  }, [authSession, clearSession, setSession, token, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

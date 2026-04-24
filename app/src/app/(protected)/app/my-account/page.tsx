@@ -3,15 +3,15 @@ import { PageContainer, PageDescription, PageTitle } from '@/components/shared/p
 import { APP_ROUTES } from '@/utils/route';
 
 export const metadata = buildSeoMetadata({
-  title: 'Exames',
-  description: 'Listagem de exames disponíveis',
-  path: APP_ROUTES.exams,
+  title: 'Minha conta',
+  description: 'Dados da conta do usuário autenticado',
+  path: APP_ROUTES.myAccount,
 });
 
-export default function ExamsPage() {
+export default function MyAccountPage() {
   return (
     <PageContainer>
-      <PageTitle>Exames</PageTitle>
+      <PageTitle>Minha conta</PageTitle>
       <PageDescription>Conteúdo em construção.</PageDescription>
     </PageContainer>
   );

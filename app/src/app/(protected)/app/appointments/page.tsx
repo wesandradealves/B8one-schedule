@@ -1,6 +1,5 @@
 import { buildSeoMetadata } from '@/utils/seo';
 import { PageContainer, PageDescription, PageTitle } from '@/components/shared/page-container';
-import { LogoutLink } from '@/components/shared/logout-link';
 import { APP_ROUTES } from '@/utils/route';
 
 export const metadata = buildSeoMetadata({
@@ -13,10 +12,7 @@ export default function AppointmentsPage() {
   return (
     <PageContainer>
       <PageTitle>Agendamentos</PageTitle>
-      <PageDescription>
-        Estrutura base pronta para listagem e gerenciamento de agendamentos.
-      </PageDescription>
-      <LogoutLink />
+      <PageDescription>Conteúdo em construção.</PageDescription>
     </PageContainer>
   );
 }

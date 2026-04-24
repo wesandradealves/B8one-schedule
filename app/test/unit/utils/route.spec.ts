@@ -2,6 +2,7 @@ import {
   APP_ROUTES,
   isAppRoute,
   isProtectedPath,
+  isUsersPath,
   PROTECTED_ROUTE_PREFIXES,
   resolvePostLoginRoute,
 } from '@/utils/route';
@@ -12,6 +13,8 @@ describe('route utils', () => {
     expect(APP_ROUTES.login).toBe('/login');
     expect(APP_ROUTES.exams).toBe('/app/exams');
     expect(APP_ROUTES.appointments).toBe('/app/appointments');
+    expect(APP_ROUTES.users).toBe('/app/users');
+    expect(APP_ROUTES.myAccount).toBe('/app/my-account');
     expect(PROTECTED_ROUTE_PREFIXES).toEqual(['/app']);
   });
 
@@ -25,6 +28,12 @@ describe('route utils', () => {
     expect(isProtectedPath('/app/exams/123')).toBe(true);
     expect(isProtectedPath('/login')).toBe(false);
     expect(isProtectedPath('/')).toBe(false);
+  });
+
+  it('should identify users admin route paths', () => {
+    expect(isUsersPath('/app/users')).toBe(true);
+    expect(isUsersPath('/app/users/123')).toBe(true);
+    expect(isUsersPath('/app/exams')).toBe(false);
   });
 
   it('should validate app routes for safe post-login redirects', () => {

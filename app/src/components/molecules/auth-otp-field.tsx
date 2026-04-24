@@ -1,7 +1,9 @@
 'use client';
 
 import {
+  useCallback,
   useId,
+  useMemo,
   useRef,
   type KeyboardEvent,
   type ClipboardEvent,
@@ -56,23 +58,27 @@ export function AuthOtpField({
 }: AuthOtpFieldProps) {
   const fieldId = useId();
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
-  const digits = Array.from({ length: OTP_LENGTH }, (_, index) => value[index] ?? '');
+  const digits = useMemo(() => {
+    return Array.from({ length: OTP_LENGTH }, (_, index) => value[index] ?? '');
+  }, [value]);
   const labelId = `${fieldId}-label`;
   const countdownId = `${fieldId}-countdown`;
   const errorId = error ? `${fieldId}-error` : undefined;
-  const describedBy = [countdownId, errorId].filter(Boolean).join(' ');
+  const describedBy = useMemo(() => {
+    return [countdownId, errorId].filter(Boolean).join(' ');
+  }, [countdownId, errorId]);
 
-  const updateAtIndex = (index: number, digit: string) => {
+  const updateAtIndex = useCallback((index: number, digit: string) => {
     const nextDigits = [...digits];
     nextDigits[index] = digit;
     onChange(sanitizeDigits(nextDigits.join('')));
-  };
+  }, [digits, onChange]);
 
-  const focusIndex = (index: number) => {
+  const focusIndex = useCallback((index: number) => {
     inputRefs.current[index]?.focus();
-  };
+  }, []);
 
-  const handleDigitChange = (index: number, nextRawValue: string) => {
+  const handleDigitChange = useCallback((index: number, nextRawValue: string) => {
     const nextDigitsRaw = sanitizeDigits(nextRawValue);
 
     if (nextDigitsRaw.length === 0) {
@@ -100,9 +106,9 @@ export function AuthOtpField({
 
     const lastFilledIndex = Math.min(index + nextDigitsRaw.length - 1, OTP_LENGTH - 1);
     focusIndex(lastFilledIndex);
-  };
+  }, [digits, focusIndex, onChange, updateAtIndex]);
 
-  const handleKeyDown = (index: number, event: KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = useCallback((index: number, event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'ArrowLeft' && index > 0) {
       event.preventDefault();
       focusIndex(index - 1);
@@ -120,9 +126,9 @@ export function AuthOtpField({
       updateAtIndex(index - 1, '');
       focusIndex(index - 1);
     }
-  };
+  }, [digits, focusIndex, updateAtIndex]);
 
-  const handlePaste = (event: ClipboardEvent<HTMLInputElement>) => {
+  const handlePaste = useCallback((event: ClipboardEvent<HTMLInputElement>) => {
     event.preventDefault();
     const pastedDigits = sanitizeDigits(event.clipboardData.getData('text'));
 
@@ -132,7 +138,7 @@ export function AuthOtpField({
 
     onChange(pastedDigits);
     focusIndex(Math.min(pastedDigits.length - 1, OTP_LENGTH - 1));
-  };
+  }, [focusIndex, onChange]);
 
   return (
     <FieldRoot>

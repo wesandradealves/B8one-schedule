@@ -4,6 +4,8 @@ export const APP_ROUTES = {
   exams: '/app/exams',
   examDetails: (id: string) => `/app/exams/${id}`,
   appointments: '/app/appointments',
+  users: '/app/users',
+  myAccount: '/app/my-account',
 } as const;
 
 export const PROTECTED_ROUTE_PREFIXES = [APP_ROUTES.app] as const;
@@ -12,6 +14,10 @@ export const isProtectedPath = (pathname: string): boolean => {
   return PROTECTED_ROUTE_PREFIXES.some((prefix) => {
     return pathname === prefix || pathname.startsWith(`${prefix}/`);
   });
+};
+
+export const isUsersPath = (pathname: string): boolean => {
+  return pathname === APP_ROUTES.users || pathname.startsWith(`${APP_ROUTES.users}/`);
 };
 
 export const isAppRoute = (candidate: string | null): candidate is string => {

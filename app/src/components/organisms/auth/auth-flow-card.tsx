@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback, useMemo, type ChangeEvent, type FormEvent } from 'react';
 import styled from 'styled-components';
 import { AuthBrandLogo } from '@/components/atoms/auth-brand-logo';
 import { AuthLinkButton } from '@/components/atoms/auth-link-button';
@@ -12,7 +13,7 @@ import { useAuthFlow } from '@/hooks/useAuthFlow';
 import { useOtpCountdown } from '@/hooks/useOtpCountdown';
 import { useSeoMetadata } from '@/hooks/useSeoMetadata';
 import { APP_ROUTES } from '@/utils/route';
-import type { AuthFlowStep } from '@/types/auth';
+import type { AuthFlowField, AuthFlowStep } from '@/types/auth';
 
 const AuthCard = styled.section.attrs({
   className: 'mx-auto flex w-full max-w-sm flex-col gap-6 py-10',
@@ -53,6 +54,15 @@ const authStepCopyMap: Record<AuthFlowStep, { title: string; description: string
   },
 };
 
+const authSubmitLabelMap: Record<AuthFlowStep, string> = {
+  'login-credentials': 'Entrar',
+  'login-two-factor': 'Validar codigo',
+  'recovery-email': 'Enviar codigo',
+  'recovery-two-factor': 'Confirmar codigo',
+  'recovery-reset': 'Redefinir senha',
+  'recovery-result': 'Voltar para login',
+};
+
 export function AuthFlowCard() {
   const {
     step,
@@ -68,12 +78,20 @@ export function AuthFlowCard() {
     submitCurrentStep,
   } = useAuthFlow();
 
-  const { title, description } = authStepCopyMap[step];
-  const isOtpStep = step === 'login-two-factor' || step === 'recovery-two-factor';
+  const { title, description } = useMemo(() => authStepCopyMap[step], [step]);
+  const isOtpStep = useMemo(
+    () => step === 'login-two-factor' || step === 'recovery-two-factor',
+    [step],
+  );
+  const otpResetKey = useMemo(
+    () => `${step}-${twoFactorExpiresInSeconds}-${form.email}`,
+    [form.email, step, twoFactorExpiresInSeconds],
+  );
+
   const otpCountdown = useOtpCountdown({
     isActive: isOtpStep,
     durationSeconds: twoFactorExpiresInSeconds,
-    resetKey: `${step}-${twoFactorExpiresInSeconds}-${form.email}`,
+    resetKey: otpResetKey,
   });
 
   useSeoMetadata({
@@ -83,19 +101,50 @@ export function AuthFlowCard() {
     indexable: false,
   });
 
-  const canGoBack =
-    step !== 'login-credentials' && step !== 'recovery-result';
+  const canGoBack = useMemo(
+    () => step !== 'login-credentials' && step !== 'recovery-result',
+    [step],
+  );
+  const isRecoveryResultStep = useMemo(() => step === 'recovery-result', [step]);
+  const submitLabel = useMemo(() => authSubmitLabelMap[step], [step]);
 
-  const isRecoveryResultStep = step === 'recovery-result';
+  const createInputChangeHandler = useCallback(
+    (field: AuthFlowField) => {
+      return (event: ChangeEvent<HTMLInputElement>) => {
+        setField(field, event.target.value);
+      };
+    },
+    [setField],
+  );
 
-  const submitLabel = (() => {
-    if (step === 'login-credentials') return 'Entrar';
-    if (step === 'login-two-factor') return 'Validar codigo';
-    if (step === 'recovery-email') return 'Enviar codigo';
-    if (step === 'recovery-two-factor') return 'Confirmar codigo';
-    if (step === 'recovery-reset') return 'Redefinir senha';
-    return 'Voltar para login';
-  })();
+  const onEmailChange = useMemo(() => createInputChangeHandler('email'), [createInputChangeHandler]);
+  const onPasswordChange = useMemo(
+    () => createInputChangeHandler('password'),
+    [createInputChangeHandler],
+  );
+  const onNewPasswordChange = useMemo(
+    () => createInputChangeHandler('newPassword'),
+    [createInputChangeHandler],
+  );
+  const onConfirmNewPasswordChange = useMemo(
+    () => createInputChangeHandler('confirmNewPassword'),
+    [createInputChangeHandler],
+  );
+
+  const onCodeChange = useCallback(
+    (nextCode: string) => {
+      setField('code', nextCode);
+    },
+    [setField],
+  );
+
+  const onSubmit = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      await submitCurrentStep();
+    },
+    [submitCurrentStep],
+  );
 
   return (
     <AuthCard>
@@ -109,10 +158,7 @@ export function AuthFlowCard() {
 
       <form
         className="flex flex-col gap-4"
-        onSubmit={async (event) => {
-          event.preventDefault();
-          await submitCurrentStep();
-        }}
+        onSubmit={onSubmit}
       >
         {step === 'login-credentials' ? (
           <>
@@ -126,7 +172,7 @@ export function AuthFlowCard() {
               value={form.email}
               error={fieldErrors.email}
               disabled={isSubmitting}
-              onChange={(event) => setField('email', event.target.value)}
+              onChange={onEmailChange}
             />
             <AuthFormField
               name="password"
@@ -138,7 +184,7 @@ export function AuthFlowCard() {
               value={form.password}
               error={fieldErrors.password}
               disabled={isSubmitting}
-              onChange={(event) => setField('password', event.target.value)}
+              onChange={onPasswordChange}
             />
           </>
         ) : null}
@@ -151,7 +197,7 @@ export function AuthFlowCard() {
             disabled={isSubmitting}
             countdownLabel="Codigo expira em"
             countdownValue={otpCountdown.formattedRemaining}
-            onChange={(nextCode) => setField('code', nextCode)}
+            onChange={onCodeChange}
           />
         ) : null}
 
@@ -166,7 +212,7 @@ export function AuthFlowCard() {
             value={form.email}
             error={fieldErrors.email}
             disabled={isSubmitting}
-            onChange={(event) => setField('email', event.target.value)}
+            onChange={onEmailChange}
           />
         ) : null}
 
@@ -182,7 +228,7 @@ export function AuthFlowCard() {
               value={form.newPassword}
               error={fieldErrors.newPassword}
               disabled={isSubmitting}
-              onChange={(event) => setField('newPassword', event.target.value)}
+              onChange={onNewPasswordChange}
             />
             <AuthFormField
               name="confirmNewPassword"
@@ -194,7 +240,7 @@ export function AuthFlowCard() {
               value={form.confirmNewPassword}
               error={fieldErrors.confirmNewPassword}
               disabled={isSubmitting}
-              onChange={(event) => setField('confirmNewPassword', event.target.value)}
+              onChange={onConfirmNewPasswordChange}
             />
           </>
         ) : null}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   login,
@@ -486,8 +486,8 @@ export function useAuthFlow() {
     transitionStep,
   ]);
 
-  const submitCurrentStep = useCallback(async () => {
-    const stepHandlers: Record<AuthFlowStep, () => Promise<void>> = {
+  const stepHandlers = useMemo<Record<AuthFlowStep, () => Promise<void>>>(() => {
+    return {
       'login-credentials': submitLoginCredentials,
       'login-two-factor': submitLoginTwoFactor,
       'recovery-email': submitRecoveryEmail,
@@ -498,12 +498,9 @@ export function useAuthFlow() {
         router.replace(APP_ROUTES.login);
       },
     };
-
-    await stepHandlers[step]();
   }, [
     goToLogin,
     router,
-    step,
     submitLoginCredentials,
     submitLoginTwoFactor,
     submitRecoveryEmail,
@@ -511,18 +508,38 @@ export function useAuthFlow() {
     submitRecoveryTwoFactor,
   ]);
 
-  return {
-    mode,
-    step,
-    form,
-    fieldErrors,
-    message,
-    isSubmitting,
-    twoFactorExpiresInSeconds,
-    setField,
-    switchToRecovery,
-    goToLogin,
-    goBack,
-    submitCurrentStep,
-  };
+  const submitCurrentStep = useCallback(async () => {
+    await stepHandlers[step]();
+  }, [step, stepHandlers]);
+
+  return useMemo(
+    () => ({
+      mode,
+      step,
+      form,
+      fieldErrors,
+      message,
+      isSubmitting,
+      twoFactorExpiresInSeconds,
+      setField,
+      switchToRecovery,
+      goToLogin,
+      goBack,
+      submitCurrentStep,
+    }),
+    [
+      fieldErrors,
+      form,
+      goBack,
+      goToLogin,
+      isSubmitting,
+      message,
+      mode,
+      setField,
+      step,
+      submitCurrentStep,
+      switchToRecovery,
+      twoFactorExpiresInSeconds,
+    ],
+  );
 }

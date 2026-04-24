@@ -19,4 +19,14 @@ describe('LogoutLink', () => {
 
     expect(logoutMock).toHaveBeenCalledTimes(1);
   });
+
+  it('should support menu variant and execute post-logout callback', () => {
+    const onAfterLogout = jest.fn();
+    render(<LogoutLink variant="menu" onAfterLogout={onAfterLogout} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sair da conta' }));
+
+    expect(logoutMock).toHaveBeenCalledTimes(1);
+    expect(onAfterLogout).toHaveBeenCalledTimes(1);
+  });
 });
