@@ -259,4 +259,200 @@ describe('useAuthFlow', () => {
       text: 'Código de verificação inválido ou expirado.',
     });
   });
+
+  it('should fallback two factor expiration to default when backend returns invalid values', async () => {
+    (login as jest.Mock).mockResolvedValue({
+      requiresTwoFactor: true,
+      message: '2FA sent',
+      twoFactorExpiresInSeconds: undefined,
+    });
+    (requestPasswordRecovery as jest.Mock).mockResolvedValue({
+      requiresTwoFactor: true,
+      message: 'code sent',
+      twoFactorExpiresInSeconds: 0,
+    });
+
+    const { result } = renderHook(() => useAuthFlow());
+
+    act(() => {
+      result.current.setField('email', 'admin@b8one.com');
+      result.current.setField('password', 'Admin@123');
+    });
+
+    await act(async () => {
+      await result.current.submitCurrentStep();
+    });
+
+    expect(result.current.twoFactorExpiresInSeconds).toBe(600);
+
+    act(() => {
+      result.current.switchToRecovery();
+      result.current.setField('email', 'cliente@b8one.com');
+    });
+
+    await act(async () => {
+      await result.current.submitCurrentStep();
+    });
+
+    expect(result.current.twoFactorExpiresInSeconds).toBe(600);
+  });
+
+  it('should block login two-factor submit when code is invalid', async () => {
+    (login as jest.Mock).mockResolvedValue({
+      requiresTwoFactor: true,
+      message: '2FA sent',
+      twoFactorExpiresInSeconds: 600,
+    });
+
+    const { result } = renderHook(() => useAuthFlow());
+
+    act(() => {
+      result.current.setField('email', 'admin@b8one.com');
+      result.current.setField('password', 'Admin@123');
+    });
+
+    await act(async () => {
+      await result.current.submitCurrentStep();
+    });
+
+    act(() => {
+      result.current.setField('code', '12');
+    });
+
+    await act(async () => {
+      await result.current.submitCurrentStep();
+    });
+
+    expect(verifyTwoFactor).not.toHaveBeenCalled();
+    expect(result.current.fieldErrors.code).toBe('O codigo deve conter exatamente 6 digitos');
+  });
+
+  it('should block recovery email submit when e-mail is invalid', async () => {
+    const { result } = renderHook(() => useAuthFlow());
+
+    act(() => {
+      result.current.switchToRecovery();
+      result.current.setField('email', 'invalid-email');
+    });
+
+    await act(async () => {
+      await result.current.submitCurrentStep();
+    });
+
+    expect(requestPasswordRecovery).not.toHaveBeenCalled();
+    expect(result.current.fieldErrors.email).toBe('Informe um e-mail valido');
+  });
+
+  it('should block recovery two-factor submit when code is invalid', async () => {
+    (requestPasswordRecovery as jest.Mock).mockResolvedValue({
+      requiresTwoFactor: true,
+      message: 'code sent',
+      twoFactorExpiresInSeconds: 600,
+    });
+
+    const { result } = renderHook(() => useAuthFlow());
+
+    act(() => {
+      result.current.switchToRecovery();
+      result.current.setField('email', 'cliente@b8one.com');
+    });
+
+    await act(async () => {
+      await result.current.submitCurrentStep();
+    });
+
+    act(() => {
+      result.current.setField('code', 'abc');
+    });
+
+    await act(async () => {
+      await result.current.submitCurrentStep();
+    });
+
+    expect(verifyPasswordRecoveryCode).not.toHaveBeenCalled();
+    expect(result.current.fieldErrors.code).toBe('O codigo deve conter exatamente 6 digitos');
+  });
+
+  it('should block recovery reset submit when validation fails', async () => {
+    const { result } = renderHook(() => useAuthFlow());
+
+    act(() => {
+      useAuthFlowStore.getState().setMode('recovery');
+      useAuthFlowStore.getState().setStep('recovery-reset');
+      result.current.setField('email', 'cliente@b8one.com');
+      result.current.setField('code', '12');
+      result.current.setField('newPassword', '123');
+      result.current.setField('confirmNewPassword', '456');
+    });
+
+    await act(async () => {
+      await result.current.submitCurrentStep();
+    });
+
+    expect(resetPassword).not.toHaveBeenCalled();
+    expect(result.current.fieldErrors.code).toBeDefined();
+    expect(result.current.fieldErrors.newPassword).toBeDefined();
+    expect(result.current.fieldErrors.confirmNewPassword).toBeDefined();
+  });
+
+  it('should execute goBack branches for every step', () => {
+    const { result } = renderHook(() => useAuthFlow());
+
+    act(() => {
+      useAuthFlowStore.getState().setStep('login-two-factor');
+      result.current.setField('code', '123456');
+    });
+    act(() => {
+      result.current.goBack();
+    });
+    expect(result.current.step).toBe('login-credentials');
+    expect(result.current.form.code).toBe('');
+
+    act(() => {
+      useAuthFlowStore.getState().setMode('recovery');
+      useAuthFlowStore.getState().setStep('recovery-two-factor');
+      result.current.setField('code', '654321');
+    });
+    act(() => {
+      result.current.goBack();
+    });
+    expect(result.current.step).toBe('recovery-email');
+    expect(result.current.form.code).toBe('');
+
+    act(() => {
+      useAuthFlowStore.getState().setStep('recovery-reset');
+      result.current.setField('newPassword', 'Client@1234');
+      result.current.setField('confirmNewPassword', 'Client@1234');
+    });
+    act(() => {
+      result.current.goBack();
+    });
+    expect(result.current.step).toBe('recovery-two-factor');
+    expect(result.current.form.newPassword).toBe('');
+    expect(result.current.form.confirmNewPassword).toBe('');
+
+    act(() => {
+      useAuthFlowStore.getState().setStep('recovery-result');
+    });
+    act(() => {
+      result.current.goBack();
+    });
+    expect(result.current.step).toBe('recovery-reset');
+  });
+
+  it('should route to login when submitting recovery-result step', async () => {
+    const { result } = renderHook(() => useAuthFlow());
+
+    act(() => {
+      useAuthFlowStore.getState().setMode('recovery');
+      useAuthFlowStore.getState().setStep('recovery-result');
+    });
+
+    await act(async () => {
+      await result.current.submitCurrentStep();
+    });
+
+    expect(replaceMock).toHaveBeenCalledWith('/login');
+    expect(result.current.step).toBe('login-credentials');
+  });
 });

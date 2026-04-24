@@ -68,4 +68,77 @@ describe('AuthOtpField', () => {
       expect(input.getAttribute('aria-describedby')).toContain('error');
     });
   });
+
+  it('should handle empty and multi-digit typing branches', () => {
+    const onChangeMock = jest.fn();
+
+    render(
+      <AuthOtpField
+        label="Codigo 2FA"
+        value=""
+        countdownLabel="Codigo expira em"
+        countdownValue="02:59"
+        onChange={onChangeMock}
+      />,
+    );
+
+    const otpInputs = screen.getAllByRole('textbox');
+
+    fireEvent.change(otpInputs[0], { target: { value: 'a' } });
+    expect(onChangeMock).toHaveBeenLastCalledWith('');
+
+    fireEvent.change(otpInputs[0], { target: { value: '123' } });
+    expect(onChangeMock).toHaveBeenLastCalledWith('123');
+  });
+
+  it('should support keyboard navigation and backspace branch', () => {
+    const onChangeMock = jest.fn();
+
+    render(
+      <AuthOtpField
+        label="Codigo 2FA"
+        value=""
+        countdownLabel="Codigo expira em"
+        countdownValue="02:59"
+        onChange={onChangeMock}
+      />,
+    );
+
+    const otpInputs = screen.getAllByRole('textbox');
+
+    otpInputs[1].focus();
+    fireEvent.keyDown(otpInputs[1], { key: 'ArrowLeft' });
+    expect(document.activeElement).toBe(otpInputs[0]);
+
+    fireEvent.keyDown(otpInputs[0], { key: 'ArrowRight' });
+    expect(document.activeElement).toBe(otpInputs[1]);
+
+    fireEvent.keyDown(otpInputs[1], { key: 'Backspace' });
+    expect(onChangeMock).toHaveBeenCalledWith('');
+    expect(document.activeElement).toBe(otpInputs[0]);
+  });
+
+  it('should ignore paste when clipboard does not contain digits', () => {
+    const onChangeMock = jest.fn();
+
+    render(
+      <AuthOtpField
+        label="Codigo 2FA"
+        value=""
+        countdownLabel="Codigo expira em"
+        countdownValue="02:59"
+        onChange={onChangeMock}
+      />,
+    );
+
+    const otpInputs = screen.getAllByRole('textbox');
+
+    fireEvent.paste(otpInputs[0], {
+      clipboardData: {
+        getData: () => 'abc',
+      },
+    });
+
+    expect(onChangeMock).not.toHaveBeenCalled();
+  });
 });

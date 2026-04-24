@@ -3,6 +3,9 @@ import { AuthFlowCard } from '@/components/organisms/auth/auth-flow-card';
 import { useAuthFlowStore } from '@/hooks/useAuthFlow.store';
 import {
   login,
+  requestPasswordRecovery,
+  resetPassword,
+  verifyPasswordRecoveryCode,
   verifyTwoFactor,
 } from '@/services/auth.service';
 
@@ -144,5 +147,66 @@ describe('AuthFlowCard', () => {
 
     expect(screen.getByText('Credenciais inválidas.')).toHaveClass('text-center');
     expect(publishMock).toHaveBeenCalledWith('error', 'Credenciais inválidas.');
+  });
+
+  it('should run recovery flow and render reset fields with final state', async () => {
+    (requestPasswordRecovery as jest.Mock).mockResolvedValue({
+      requiresTwoFactor: true,
+      message: 'code sent',
+      twoFactorExpiresInSeconds: 600,
+    });
+    (verifyPasswordRecoveryCode as jest.Mock).mockResolvedValue({
+      verified: true,
+      message: 'code verified',
+    });
+    (resetPassword as jest.Mock).mockResolvedValue({
+      message: 'password reset',
+    });
+
+    render(<AuthFlowCard />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Esqueci minha senha' }));
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: 'cliente@b8one.com' },
+    });
+    fireEvent.submit(screen.getByRole('button', { name: 'Enviar codigo' }).closest('form')!);
+
+    await waitFor(() => {
+      expect(screen.getByText('Validar codigo')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Confirmar codigo' })).toBeInTheDocument();
+    });
+
+    const otpInputs = screen.getAllByLabelText(/Digito \d do codigo 2FA/i);
+    fireEvent.paste(otpInputs[0], {
+      clipboardData: {
+        getData: () => '654321',
+      },
+    });
+    fireEvent.submit(
+      screen.getByRole('button', { name: 'Confirmar codigo' }).closest('form')!,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Nova senha' })).toBeInTheDocument();
+      expect(screen.getByLabelText('Nova senha')).toBeInTheDocument();
+      expect(screen.getByLabelText('Confirmar nova senha')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Redefinir senha' })).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText('Nova senha'), {
+      target: { value: 'Client@1234' },
+    });
+    fireEvent.change(screen.getByLabelText('Confirmar nova senha'), {
+      target: { value: 'Client@1234' },
+    });
+    fireEvent.submit(
+      screen.getByRole('button', { name: 'Redefinir senha' }).closest('form')!,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Recuperacao finalizada')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Voltar para login' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Ir para login' })).toBeInTheDocument();
+    });
   });
 });
