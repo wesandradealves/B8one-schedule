@@ -6,6 +6,8 @@ import { IDeleteExamUseCase } from '@/domain/interfaces/use-cases/exams/delete-e
 import { IGetExamByIdUseCase } from '@/domain/interfaces/use-cases/exams/get-exam-by-id.use-case';
 import { IListAllExamsUseCase } from '@/domain/interfaces/use-cases/exams/list-all-exams.use-case';
 import { IUpdateExamUseCase } from '@/domain/interfaces/use-cases/exams/update-exam.use-case';
+import { IImportExamsCsvUseCase } from '@/domain/interfaces/use-cases/exams/import-exams-csv.use-case';
+import { IExportExamsCsvUseCase } from '@/domain/interfaces/use-cases/exams/export-exams-csv.use-case';
 import { AuthenticatedUser } from '@/domain/types/authenticated-user.type';
 import { CurrentUser } from '@/infrastructure/http/decorators/current-user.decorator';
 import { Permissions } from '@/infrastructure/http/decorators/permissions.decorator';
@@ -40,10 +42,17 @@ import { CreateExamRequestDto } from '../dto/create-exam.request.dto';
 import { ExamResponseDto } from '../dto/exam.response.dto';
 import { ListExamsResponseDto } from '../dto/list-exams.response.dto';
 import { UpdateExamRequestDto } from '../dto/update-exam.request.dto';
+import { CsvImportRequestDto } from '@/modules/shared/dto/csv-import.request.dto';
+import { CsvImportResponseDto } from '@/modules/shared/dto/csv-import.response.dto';
+import { CsvExportResponseDto } from '@/modules/shared/dto/csv-export.response.dto';
 import {
   PaginationQuerySchemaType,
   paginationQuerySchema,
 } from '@/modules/shared/utils/pagination-query.schema';
+import {
+  CsvImportSchemaType,
+  csvImportSchema,
+} from '@/modules/shared/utils/csv-import.schema';
 import { createExamSchema } from '../schemas/create-exam.schema';
 import { examIdParamSchema } from '../schemas/exam-id-param.schema';
 import { updateExamSchema } from '../schemas/update-exam.schema';
@@ -65,6 +74,10 @@ export class ExamsController {
     private readonly updateExamUseCase: IUpdateExamUseCase,
     @Inject(IDeleteExamUseCase)
     private readonly deleteExamUseCase: IDeleteExamUseCase,
+    @Inject(IImportExamsCsvUseCase)
+    private readonly importExamsCsvUseCase: IImportExamsCsvUseCase,
+    @Inject(IExportExamsCsvUseCase)
+    private readonly exportExamsCsvUseCase: IExportExamsCsvUseCase,
   ) {}
 
   @Get('all')
@@ -119,6 +132,32 @@ export class ExamsController {
       ...payload,
     });
     return this.toResponse(exam);
+  }
+
+  @Post('import/csv')
+  @Permissions(Permission.EXAMS_IMPORT_CSV)
+  @ApiOperation({ summary: 'Import exams from CSV (admin only)' })
+  @ApiBody({ type: CsvImportRequestDto })
+  @ApiResponse({ status: 200, type: CsvImportResponseDto })
+  async importCsv(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body(new ZodValidationPipe(csvImportSchema))
+    payload: CsvImportSchemaType,
+  ): Promise<CsvImportResponseDto> {
+    return this.importExamsCsvUseCase.execute({
+      user,
+      csvContent: payload.csvContent,
+    });
+  }
+
+  @Get('export/csv')
+  @Permissions(Permission.EXAMS_EXPORT_CSV)
+  @ApiOperation({ summary: 'Export exams to CSV (admin only)' })
+  @ApiResponse({ status: 200, type: CsvExportResponseDto })
+  async exportCsv(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<CsvExportResponseDto> {
+    return this.exportExamsCsvUseCase.execute({ user });
   }
 
   @Patch(':id')

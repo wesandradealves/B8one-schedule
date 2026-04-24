@@ -8,6 +8,8 @@ import { IGetAppointmentByIdUseCase } from '@/domain/interfaces/use-cases/appoin
 import { IListAppointmentsUseCase } from '@/domain/interfaces/use-cases/appointments/list-appointments.use-case';
 import { IRequestAppointmentChangeUseCase } from '@/domain/interfaces/use-cases/appointments/request-appointment-change.use-case';
 import { IUpdateAppointmentUseCase } from '@/domain/interfaces/use-cases/appointments/update-appointment.use-case';
+import { IImportAppointmentsCsvUseCase } from '@/domain/interfaces/use-cases/appointments/import-appointments-csv.use-case';
+import { IExportAppointmentsCsvUseCase } from '@/domain/interfaces/use-cases/appointments/export-appointments-csv.use-case';
 import { BullMqMessagingModule } from '@/infrastructure/providers/messaging/bullmq/bullmq.module';
 import { AppointmentRepository } from '@/infrastructure/repositories/appointment.repository';
 import { Module } from '@nestjs/common';
@@ -23,6 +25,9 @@ import { GetAppointmentByIdUseCase } from './use-cases/get-appointment-by-id.use
 import { ListAppointmentsUseCase } from './use-cases/list-appointments.use-case';
 import { RequestAppointmentChangeUseCase } from './use-cases/request-appointment-change.use-case';
 import { UpdateAppointmentUseCase } from './use-cases/update-appointment.use-case';
+import { ImportAppointmentsCsvUseCase } from './use-cases/import-appointments-csv.use-case';
+import { ExportAppointmentsCsvUseCase } from './use-cases/export-appointments-csv.use-case';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
@@ -30,6 +35,7 @@ import { UpdateAppointmentUseCase } from './use-cases/update-appointment.use-cas
     SharedModule,
     BullMqMessagingModule,
     ExamsModule,
+    UsersModule,
   ],
   controllers: [AppointmentsController],
   providers: [
@@ -68,6 +74,14 @@ import { UpdateAppointmentUseCase } from './use-cases/update-appointment.use-cas
     {
       provide: IDeleteAppointmentUseCase,
       useClass: DeleteAppointmentUseCase,
+    },
+    {
+      provide: IImportAppointmentsCsvUseCase,
+      useClass: ImportAppointmentsCsvUseCase,
+    },
+    {
+      provide: IExportAppointmentsCsvUseCase,
+      useClass: ExportAppointmentsCsvUseCase,
     },
   ],
 })

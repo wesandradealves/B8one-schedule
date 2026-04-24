@@ -5,6 +5,8 @@ import { IDeleteUserUseCase } from '@/domain/interfaces/use-cases/users/delete-u
 import { IGetUserByIdUseCase } from '@/domain/interfaces/use-cases/users/get-user-by-id.use-case';
 import { IListUsersUseCase } from '@/domain/interfaces/use-cases/users/list-users.use-case';
 import { IUpdateUserUseCase } from '@/domain/interfaces/use-cases/users/update-user.use-case';
+import { IImportUsersCsvUseCase } from '@/domain/interfaces/use-cases/users/import-users-csv.use-case';
+import { IExportUsersCsvUseCase } from '@/domain/interfaces/use-cases/users/export-users-csv.use-case';
 import { HashModule } from '@/infrastructure/providers/hash/hash.module';
 import { BullMqMessagingModule } from '@/infrastructure/providers/messaging/bullmq/bullmq.module';
 import { UserRepository } from '@/infrastructure/repositories/user.repository';
@@ -16,6 +18,8 @@ import { DeleteUserUseCase } from './use-cases/delete-user.use-case';
 import { GetUserByIdUseCase } from './use-cases/get-user-by-id.use-case';
 import { ListUsersUseCase } from './use-cases/list-users.use-case';
 import { UpdateUserUseCase } from './use-cases/update-user.use-case';
+import { ImportUsersCsvUseCase } from './use-cases/import-users-csv.use-case';
+import { ExportUsersCsvUseCase } from './use-cases/export-users-csv.use-case';
 import { SharedModule } from '../shared/shared.module';
 
 @Module({
@@ -50,6 +54,14 @@ import { SharedModule } from '../shared/shared.module';
     {
       provide: IDeleteUserUseCase,
       useClass: DeleteUserUseCase,
+    },
+    {
+      provide: IImportUsersCsvUseCase,
+      useClass: ImportUsersCsvUseCase,
+    },
+    {
+      provide: IExportUsersCsvUseCase,
+      useClass: ExportUsersCsvUseCase,
     },
   ],
   exports: [IUserRepository],

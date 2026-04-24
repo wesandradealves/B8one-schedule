@@ -46,6 +46,137 @@ Monorepo com backend em NestJS (DDD) e frontend em Next.js (App Router), com aut
 - Validação de payload/parâmetros com **ZodValidationPipe**.
 - Mensageria centralizada via `IMessagingProvider` (BullMQ).
 
+### 2.3 Fluxograma Completo do Backend
+
+```mermaid
+flowchart LR
+  subgraph Entry["Entrada e Observabilidade"]
+    REQ["Client / Frontend / Swagger UI"]
+    DOCS["/docs e /docs-json"]
+    HEALTH["/health"]
+    METRICS["/metrics"]
+  end
+
+  subgraph Pipeline["Pipeline NestJS"]
+    BOOT["main.ts + ApiModule<br/>prefix + swagger + globals"]
+    GUARD_CHECK{"Rota protegida?"}
+    GUARDS["JwtAuthGuard -> ProfileGuard -> PermissionsGuard"]
+    ZOD["ZodValidationPipe<br/>body/query/params"]
+    FILTER["HttpExceptionFilter"]
+    METRICS_INT["HttpMetricsInterceptor (prom-client)"]
+  end
+
+  subgraph Controllers["Controllers"]
+    AUTH_C["AuthController"]
+    USERS_C["UsersController"]
+    EXAMS_C["ExamsController"]
+    APPTS_C["AppointmentsController"]
+    HEALTH_C["ApiHealthController"]
+    METRICS_C["MetricsController"]
+  end
+
+  subgraph UseCases["Use Cases (Regra de Negócio)"]
+    AUTH_U["Auth<br/>login, verify2fa,<br/>password recovery request/verify/reset"]
+    USERS_U["Users<br/>listAll, findById, create, update, delete,<br/>importCsv, exportCsv"]
+    EXAMS_U["Exams<br/>listAll, findById, create, update, delete,<br/>importCsv, exportCsv"]
+    APPTS_U["Appointments<br/>listAll, findById, create, update, delete,<br/>cancel, requestChange, approveChange,<br/>importCsv, exportCsv"]
+  end
+
+  subgraph Contracts["Contratos de Domínio (Interfaces)"]
+    IUserRepo["IUserRepository"]
+    IExamRepo["IExamRepository"]
+    IApptRepo["IAppointmentRepository"]
+    IAuthRepo["IAuthRepository"]
+    IJwt["IJwtProvider"]
+    IHash["IHashProvider"]
+    IEmail["IEmailProvider"]
+    ICache["ICacheProvider"]
+    IMsg["IMessagingProvider"]
+  end
+
+  subgraph Infra["Infraestrutura (Implementações)"]
+    UserRepo["UserRepository"]
+    ExamRepo["ExamRepository"]
+    ApptRepo["AppointmentRepository"]
+    AuthRepo["AuthRepository"]
+    JwtProv["JwtProvider + JwtStrategy"]
+    HashProv["HashProvider (bcrypt)"]
+    EmailProv["SmtpEmailProvider (nodemailer)"]
+    CacheProv["RedisCacheProvider"]
+    MsgProv["BullMqProvider + BullMqProcessor"]
+  end
+
+  subgraph Stores["Banco e Serviços Externos"]
+    PG[("PostgreSQL")]
+    REDIS[("Redis")]
+    BULL[("BullMQ Queue")]
+    SMTP[("SMTP")]
+  end
+
+  subgraph Rules["Regras Transversais"]
+    CACHE_RULE["Cache de exames<br/>TTL 300s"]
+    PROFILE_RULE["Perfil/permissão validado<br/>em guard + use case"]
+    QUERY_RULE["Persistência com<br/>TypeORM QueryBuilder"]
+  end
+
+  RESP["HTTP Response (DTO + status code)"]
+
+  REQ --> BOOT --> METRICS_INT --> GUARD_CHECK
+  DOCS --> BOOT
+  HEALTH --> HEALTH_C --> RESP
+  METRICS --> METRICS_C --> RESP
+
+  GUARD_CHECK -- "Não (/auth/*)" --> AUTH_C
+  GUARD_CHECK -- "Sim" --> GUARDS --> ZOD
+  ZOD --> USERS_C
+  ZOD --> EXAMS_C
+  ZOD --> APPTS_C
+
+  AUTH_C --> AUTH_U
+  USERS_C --> USERS_U
+  EXAMS_C --> EXAMS_U
+  APPTS_C --> APPTS_U
+
+  AUTH_U --> IAuthRepo
+  AUTH_U --> IUserRepo
+  AUTH_U --> IJwt
+  AUTH_U --> IHash
+  AUTH_U --> IEmail
+  AUTH_U --> IMsg
+
+  USERS_U --> IUserRepo
+  USERS_U --> IHash
+  USERS_U --> IMsg
+  USERS_U --> PROFILE_RULE
+
+  EXAMS_U --> IExamRepo
+  EXAMS_U --> ICache
+  EXAMS_U --> IMsg
+  EXAMS_U --> CACHE_RULE
+
+  APPTS_U --> IApptRepo
+  APPTS_U --> IExamRepo
+  APPTS_U --> IUserRepo
+  APPTS_U --> IMsg
+  APPTS_U --> PROFILE_RULE
+
+  IUserRepo --> UserRepo --> QUERY_RULE --> PG
+  IExamRepo --> ExamRepo --> PG
+  IApptRepo --> ApptRepo --> PG
+  IAuthRepo --> AuthRepo --> PG
+  IJwt --> JwtProv
+  IHash --> HashProv
+  IEmail --> EmailProv --> SMTP
+  ICache --> CacheProv --> REDIS
+  IMsg --> MsgProv --> BULL
+
+  AUTH_U --> FILTER
+  USERS_U --> FILTER
+  EXAMS_U --> FILTER
+  APPTS_U --> FILTER
+  FILTER --> RESP
+```
+
 ## 3. Perfis, Roles e Permissões
 
 ### 3.1 Perfis
@@ -63,10 +194,14 @@ Base: `api/src/domain/commons/constants/profile-permissions.constant.ts`
 | `EXAMS_CREATE` | Sim | Não |
 | `EXAMS_UPDATE` | Sim | Não |
 | `EXAMS_DELETE` | Sim | Não |
+| `EXAMS_IMPORT_CSV` | Sim | Não |
+| `EXAMS_EXPORT_CSV` | Sim | Não |
 | `USERS_READ` | Sim | Sim |
 | `USERS_CREATE` | Sim | Não |
 | `USERS_UPDATE` | Sim | Sim |
 | `USERS_DELETE` | Sim | Não |
+| `USERS_IMPORT_CSV` | Sim | Não |
+| `USERS_EXPORT_CSV` | Sim | Não |
 | `APPOINTMENTS_CREATE` | Sim | Sim |
 | `APPOINTMENTS_READ_OWN` | Sim | Sim |
 | `APPOINTMENTS_UPDATE` | Sim | Não |
@@ -74,6 +209,8 @@ Base: `api/src/domain/commons/constants/profile-permissions.constant.ts`
 | `APPOINTMENTS_CANCEL_OWN` | Sim | Sim |
 | `APPOINTMENTS_REQUEST_CHANGE_OWN` | Sim | Sim |
 | `APPOINTMENTS_APPROVE_CHANGE` | Sim | Não |
+| `APPOINTMENTS_IMPORT_CSV` | Sim | Não |
+| `APPOINTMENTS_EXPORT_CSV` | Sim | Não |
 
 ## 4. Regras de Negócio Implementadas
 
@@ -112,6 +249,10 @@ Base: `api/src/domain/commons/constants/profile-permissions.constant.ts`
 - `PATCH /users/:id`
   - `ADMIN`: pode atualizar perfil/e-mail/status/senha.
   - `CLIENT`: somente próprio perfil e sem alterar `email/profile/isActive`.
+- `POST /users/import/csv`
+  - Apenas `ADMIN`.
+- `GET /users/export/csv`
+  - Apenas `ADMIN`.
 
 ### 4.3 Exams
 
@@ -122,6 +263,10 @@ Base: `api/src/domain/commons/constants/profile-permissions.constant.ts`
   - `ADMIN`: pode ver qualquer exame.
   - `CLIENT`: somente exames ativos.
 - `POST`, `PATCH`, `DELETE`
+  - Apenas `ADMIN`.
+- `POST /exams/import/csv`
+  - Apenas `ADMIN`.
+- `GET /exams/export/csv`
   - Apenas `ADMIN`.
 
 ### 4.4 Appointments
@@ -143,6 +288,10 @@ Base: `api/src/domain/commons/constants/profile-permissions.constant.ts`
 - `PATCH /appointments/:id`
   - Apenas admin (edição direta).
 - `DELETE /appointments/:id`
+  - Apenas admin.
+- `POST /appointments/import/csv`
+  - Apenas admin.
+- `GET /appointments/export/csv`
   - Apenas admin.
 
 ## 5. Validações
@@ -190,6 +339,8 @@ Formato de erro HTTP padronizado pelo `HttpExceptionFilter`:
 - `POST /users`
 - `PATCH /users/:id`
 - `DELETE /users/:id`
+- `POST /users/import/csv`
+- `GET /users/export/csv`
 
 ### 6.4 Exams
 
@@ -198,6 +349,8 @@ Formato de erro HTTP padronizado pelo `HttpExceptionFilter`:
 - `POST /exams`
 - `PATCH /exams/:id`
 - `DELETE /exams/:id`
+- `POST /exams/import/csv`
+- `GET /exams/export/csv`
 
 ### 6.5 Appointments
 
@@ -209,6 +362,48 @@ Formato de erro HTTP padronizado pelo `HttpExceptionFilter`:
 - `PATCH /appointments/:id/request-change`
 - `PATCH /appointments/:id/approve-change`
 - `DELETE /appointments/:id`
+- `POST /appointments/import/csv`
+- `GET /appointments/export/csv`
+
+## 6.6 CSV Import/Export (Admin)
+
+Todos os imports recebem JSON no body:
+
+```json
+{
+  "csvContent": "header1,header2\nvalue1,value2"
+}
+```
+
+### Users CSV
+
+- Import endpoint: `POST /users/import/csv`
+- Export endpoint: `GET /users/export/csv`
+- Headers mínimos de import:
+  - `fullName,email,profile,isActive`
+- Header opcional:
+  - `password` (obrigatório somente para criação de novo usuário)
+
+### Exams CSV
+
+- Import endpoint: `POST /exams/import/csv`
+- Export endpoint: `GET /exams/export/csv`
+- Headers mínimos de import:
+  - `name,durationMinutes,priceCents,isActive`
+- Headers opcionais:
+  - `id` (para update)
+  - `description`
+
+### Appointments CSV
+
+- Import endpoint: `POST /appointments/import/csv`
+- Export endpoint: `GET /appointments/export/csv`
+- Headers mínimos de import:
+  - `userId,examId,scheduledAt`
+- Headers opcionais:
+  - `id` (para update)
+  - `status` (`SCHEDULED` ou `CANCELLED`)
+  - `notes`
 
 ## 7. Swagger e Teste Completo da API
 
@@ -271,7 +466,7 @@ cp .env.example .env
 
 Configurações da orquestração Docker (portas, credenciais e conexões de backend/postgres/redis/adminer), incluindo SMTP/JWT e variáveis públicas do frontend, ficam no `.env` da raiz.
 
-### 9.3 Subir stack completa com Docker (orquestração atual)
+### 9.3 Subir stack completa com Docker 
 
 ```bash
 docker compose up -d --build
@@ -439,3 +634,44 @@ Cobertura inclui:
 - hooks, contexts e serviços;
 - middleware e templates de rota;
 - contratos de arquitetura/DRY em `app/test/unit/architecture/patterns.spec.ts`.
+
+## 13. Validação Executada (Backend)
+
+Validação executada em 23/04/2026 com backend em container atualizado (`docker compose up -d --build backend`).
+
+### 13.1 Quality gates
+
+Executado em `api/`:
+
+```bash
+npm run lint
+npm run build
+npm test -- --runInBand
+```
+
+Resultado: sucesso (`36` suites, `134` testes passando).
+
+### 13.2 E2E autenticado (fluxo completo)
+
+Fluxo validado ponta a ponta com autenticação JWT + 2FA:
+
+- `Auth`: `POST /auth/login`, `POST /auth/2fa/verify` (código inválido bloqueia, código válido libera token), `POST /auth/password-recovery/request`, `POST /auth/password-recovery/verify`, `POST /auth/password-recovery/reset`.
+- `Users`: `GET /users/all` (admin vê todos, client vê apenas o próprio), `POST /users`, `PATCH /users/:id`, `GET /users/:id`, `DELETE /users/:id`, com validação de bloqueio de client em ações de admin.
+- `Exams`: `GET /exams/all`, `POST /exams`, `PATCH /exams/:id`, `GET /exams/:id`, `DELETE /exams/:id`, com validação de bloqueio de client em ações de admin.
+- `Appointments`: `POST /appointments` (incluindo validação de data inválida), `GET /appointments/all`, `PATCH /appointments/:id/request-change`, `PATCH /appointments/:id/approve-change`, `PATCH /appointments/:id/cancel`, `PATCH /appointments/:id`, `DELETE /appointments/:id`, com validação de bloqueio por perfil/permissão.
+- `CSV (admin only)`: `POST /users/import/csv`, `GET /users/export/csv`, `POST /exams/import/csv`, `GET /exams/export/csv`, `POST /appointments/import/csv`, `GET /appointments/export/csv`; também validado retorno `403` para usuário client.
+
+### 13.3 Swagger
+
+Validado via `GET /docs-json`:
+
+- endpoints do fluxo acima presentes;
+- endpoints protegidos com `security` bearer;
+- requestBody/DTOs dos fluxos CSV e recuperação de senha documentados.
+
+### 13.4 Checagens de padrão arquitetural
+
+- Sem SQL raw em módulos/repositories (`.query(` não encontrado em `api/src/modules` e `api/src/infrastructure/repositories`).
+- `nodemailer` restrito ao provider SMTP (`infrastructure/providers/email/smtp`).
+- `bullmq` restrito ao provider/processor de mensageria (`infrastructure/providers/messaging/bullmq`).
+- Use cases sem publicação de evento são apenas os de leitura (`list/get` de `users`, `exams`, `appointments`).

@@ -10,6 +10,8 @@ import { IApproveAppointmentChangeUseCase } from '@/domain/interfaces/use-cases/
 import { IUpdateAppointmentUseCase } from '@/domain/interfaces/use-cases/appointments/update-appointment.use-case';
 import { IDeleteAppointmentUseCase } from '@/domain/interfaces/use-cases/appointments/delete-appointment.use-case';
 import { IGetAppointmentByIdUseCase } from '@/domain/interfaces/use-cases/appointments/get-appointment-by-id.use-case';
+import { IImportAppointmentsCsvUseCase } from '@/domain/interfaces/use-cases/appointments/import-appointments-csv.use-case';
+import { IExportAppointmentsCsvUseCase } from '@/domain/interfaces/use-cases/appointments/export-appointments-csv.use-case';
 import { CurrentUser } from '@/infrastructure/http/decorators/current-user.decorator';
 import { Permissions } from '@/infrastructure/http/decorators/permissions.decorator';
 import { Profiles } from '@/infrastructure/http/decorators/profiles.decorator';
@@ -44,10 +46,17 @@ import { CreateAppointmentRequestDto } from '../dto/create-appointment.request.d
 import { ListAppointmentsResponseDto } from '../dto/list-appointments.response.dto';
 import { RequestAppointmentChangeRequestDto } from '../dto/request-appointment-change.request.dto';
 import { UpdateAppointmentRequestDto } from '../dto/update-appointment.request.dto';
+import { CsvImportRequestDto } from '@/modules/shared/dto/csv-import.request.dto';
+import { CsvImportResponseDto } from '@/modules/shared/dto/csv-import.response.dto';
+import { CsvExportResponseDto } from '@/modules/shared/dto/csv-export.response.dto';
 import {
   PaginationQuerySchemaType,
   paginationQuerySchema,
 } from '@/modules/shared/utils/pagination-query.schema';
+import {
+  CsvImportSchemaType,
+  csvImportSchema,
+} from '@/modules/shared/utils/csv-import.schema';
 import { appointmentIdParamSchema } from '../schemas/appointment-id-param.schema';
 import { createAppointmentSchema } from '../schemas/create-appointment.schema';
 import { requestAppointmentChangeSchema } from '../schemas/request-appointment-change.schema';
@@ -76,6 +85,10 @@ export class AppointmentsController {
     private readonly updateAppointmentUseCase: IUpdateAppointmentUseCase,
     @Inject(IDeleteAppointmentUseCase)
     private readonly deleteAppointmentUseCase: IDeleteAppointmentUseCase,
+    @Inject(IImportAppointmentsCsvUseCase)
+    private readonly importAppointmentsCsvUseCase: IImportAppointmentsCsvUseCase,
+    @Inject(IExportAppointmentsCsvUseCase)
+    private readonly exportAppointmentsCsvUseCase: IExportAppointmentsCsvUseCase,
   ) {}
 
   @Post()
@@ -97,6 +110,33 @@ export class AppointmentsController {
     });
 
     return this.toResponse(appointment);
+  }
+
+  @Post('import/csv')
+  @Permissions(Permission.APPOINTMENTS_IMPORT_CSV)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Import appointments from CSV (admin only)' })
+  @ApiBody({ type: CsvImportRequestDto })
+  @ApiResponse({ status: 200, type: CsvImportResponseDto })
+  async importCsv(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body(new ZodValidationPipe(csvImportSchema))
+    payload: CsvImportSchemaType,
+  ): Promise<CsvImportResponseDto> {
+    return this.importAppointmentsCsvUseCase.execute({
+      user,
+      csvContent: payload.csvContent,
+    });
+  }
+
+  @Get('export/csv')
+  @Permissions(Permission.APPOINTMENTS_EXPORT_CSV)
+  @ApiOperation({ summary: 'Export appointments to CSV (admin only)' })
+  @ApiResponse({ status: 200, type: CsvExportResponseDto })
+  async exportCsv(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<CsvExportResponseDto> {
+    return this.exportAppointmentsCsvUseCase.execute({ user });
   }
 
   @Get('all')
