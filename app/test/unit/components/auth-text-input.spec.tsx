@@ -17,4 +17,12 @@ describe('AuthTextInput', () => {
     expect(input).toHaveClass('pl-10');
     expect(input).toHaveClass('border-red-400');
   });
+
+  it('should expose readonly visual classes for readonly inputs', () => {
+    render(<AuthTextInput aria-label="input-readonly" readOnly />);
+
+    const input = screen.getByLabelText('input-readonly');
+    expect(input).toHaveClass('read-only:bg-slate-100');
+    expect(input).toHaveClass('read-only:text-slate-600');
+  });
 });

@@ -10,7 +10,7 @@ interface AuthTextInputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 const Input = styled.input.attrs<{ $hasError: boolean; $hasLeftIcon: boolean }>(
   ({ $hasError, $hasLeftIcon }) => ({
-    className: `h-11 w-full rounded-xl border bg-white text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 ${
+    className: `h-11 w-full rounded-xl border bg-white text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 read-only:bg-slate-100 read-only:text-slate-600 read-only:cursor-default disabled:bg-slate-100 disabled:text-slate-600 ${
       $hasLeftIcon ? 'pl-10 pr-3' : 'px-3'
     } ${
     $hasError

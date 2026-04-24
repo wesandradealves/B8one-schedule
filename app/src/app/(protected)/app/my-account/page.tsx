@@ -1,6 +1,6 @@
 import { buildSeoMetadata } from '@/utils/seo';
-import { PageContainer, PageDescription, PageTitle } from '@/components/shared/page-container';
 import { APP_ROUTES } from '@/utils/route';
+import { MyAccountForm } from '@/components/organisms/protected/my-account-form';
 
 export const metadata = buildSeoMetadata({
   title: 'Minha conta',
@@ -9,10 +9,5 @@ export const metadata = buildSeoMetadata({
 });
 
 export default function MyAccountPage() {
-  return (
-    <PageContainer>
-      <PageTitle>Minha conta</PageTitle>
-      <PageDescription>Conteúdo em construção.</PageDescription>
-    </PageContainer>
-  );
+  return <MyAccountForm />;
 }
