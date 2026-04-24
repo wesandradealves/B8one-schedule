@@ -1,6 +1,7 @@
 import { AppointmentEntity } from '@/domain/entities/appointment.entity';
 import { Permission } from '@/domain/commons/enums/permission.enum';
 import { UserProfile } from '@/domain/commons/enums/user-profile.enum';
+import { SortOrder } from '@/domain/commons/enums/sort-order.enum';
 import { AuthenticatedUser } from '@/domain/types/authenticated-user.type';
 import { ICreateAppointmentUseCase } from '@/domain/interfaces/use-cases/appointments/create-appointment.use-case';
 import { IListAppointmentsUseCase } from '@/domain/interfaces/use-cases/appointments/list-appointments.use-case';
@@ -50,9 +51,9 @@ import { CsvImportRequestDto } from '@/modules/shared/dto/csv-import.request.dto
 import { CsvImportResponseDto } from '@/modules/shared/dto/csv-import.response.dto';
 import { CsvExportResponseDto } from '@/modules/shared/dto/csv-export.response.dto';
 import {
-  PaginationQuerySchemaType,
-  paginationQuerySchema,
-} from '@/modules/shared/utils/pagination-query.schema';
+  ListAppointmentsQuerySchemaType,
+  listAppointmentsQuerySchema,
+} from '../schemas/list-appointments-query.schema';
 import {
   CsvImportSchemaType,
   csvImportSchema,
@@ -144,13 +145,26 @@ export class AppointmentsController {
   @ApiOperation({ summary: 'List appointments (admin: all, client: own)' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: SortOrder,
+    example: SortOrder.DESC,
+  })
+  @ApiQuery({
+    name: 'scheduledDate',
+    required: false,
+    type: String,
+    example: '2026-05-01',
+    description: 'Filter appointments by YYYY-MM-DD',
+  })
   @ApiResponse({ status: 200, type: ListAppointmentsResponseDto })
   async listAll(
     @CurrentUser() user: AuthenticatedUser,
-    @Query(new ZodValidationPipe(paginationQuerySchema))
-    pagination: PaginationQuerySchemaType,
+    @Query(new ZodValidationPipe(listAppointmentsQuerySchema))
+    query: ListAppointmentsQuerySchemaType,
   ): Promise<ListAppointmentsResponseDto> {
-    const result = await this.listAppointmentsUseCase.execute(user, pagination);
+    const result = await this.listAppointmentsUseCase.execute(user, query);
 
     return {
       ...result,

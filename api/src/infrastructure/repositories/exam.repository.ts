@@ -1,4 +1,5 @@
 import { ExamEntity } from '@/domain/entities/exam.entity';
+import { SortOrder } from '@/domain/commons/enums/sort-order.enum';
 import {
   CreateExamInput,
   IExamRepository,
@@ -32,10 +33,13 @@ export class ExamRepository implements IExamRepository {
   }
 
   async listActive(pagination: PaginationQuery): Promise<PaginatedResult<ExamEntity>> {
+    const sortOrder = pagination.sortOrder ?? SortOrder.DESC;
+
     const [data, total] = await this.repository
       .createQueryBuilder('exam')
       .where('exam.isActive = :isActive', { isActive: true })
-      .orderBy('exam.name', 'ASC')
+      .orderBy('exam.createdAt', sortOrder)
+      .addOrderBy('exam.id', sortOrder)
       .skip((pagination.page - 1) * pagination.limit)
       .take(pagination.limit)
       .getManyAndCount();
@@ -50,9 +54,12 @@ export class ExamRepository implements IExamRepository {
   }
 
   async listAll(pagination: PaginationQuery): Promise<PaginatedResult<ExamEntity>> {
+    const sortOrder = pagination.sortOrder ?? SortOrder.DESC;
+
     const [data, total] = await this.repository
       .createQueryBuilder('exam')
-      .orderBy('exam.createdAt', 'DESC')
+      .orderBy('exam.createdAt', sortOrder)
+      .addOrderBy('exam.id', sortOrder)
       .skip((pagination.page - 1) * pagination.limit)
       .take(pagination.limit)
       .getManyAndCount();

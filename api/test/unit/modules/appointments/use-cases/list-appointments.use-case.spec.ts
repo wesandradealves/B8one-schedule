@@ -36,7 +36,7 @@ function createSut(): Sut {
 describe('ListAppointmentsUseCase', () => {
   it('returns listAll for admin', async () => {
     const { useCase, appointmentRepository } = createSut();
-    const pagination = { page: 1, limit: 5 };
+    const query = { page: 1, limit: 5, scheduledDate: '2026-05-01' };
 
     appointmentRepository.listAll.mockResolvedValue({
       data: [makeAppointmentEntity({ id: 'a1' })],
@@ -48,17 +48,17 @@ describe('ListAppointmentsUseCase', () => {
 
     const output = await useCase.execute(
       makeAuthenticatedUser({ profile: UserProfile.ADMIN }),
-      pagination,
+      query,
     );
 
-    expect(appointmentRepository.listAll).toHaveBeenCalledWith(pagination);
+    expect(appointmentRepository.listAll).toHaveBeenCalledWith(query);
     expect(appointmentRepository.listByUserId).not.toHaveBeenCalled();
     expect(output.total).toBe(1);
   });
 
   it('returns listByUserId for client', async () => {
     const { useCase, appointmentRepository } = createSut();
-    const pagination = { page: 2, limit: 2 };
+    const query = { page: 2, limit: 2 };
 
     appointmentRepository.listByUserId.mockResolvedValue({
       data: [makeAppointmentEntity({ id: 'a2', userId: 'client-id' })],
@@ -70,10 +70,10 @@ describe('ListAppointmentsUseCase', () => {
 
     const output = await useCase.execute(
       makeAuthenticatedUser({ id: 'client-id', profile: UserProfile.CLIENT }),
-      pagination,
+      query,
     );
 
-    expect(appointmentRepository.listByUserId).toHaveBeenCalledWith('client-id', pagination);
+    expect(appointmentRepository.listByUserId).toHaveBeenCalledWith('client-id', query);
     expect(appointmentRepository.listAll).not.toHaveBeenCalled();
     expect(output.page).toBe(2);
   });

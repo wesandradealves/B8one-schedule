@@ -3,6 +3,10 @@ import { AppointmentStatus } from '@/domain/commons/enums/appointment-status.enu
 import { AppointmentChangeStatus } from '@/domain/commons/enums/appointment-change-status.enum';
 import { PaginatedResult, PaginationQuery } from '@/domain/commons/interfaces/pagination.interface';
 
+export interface AppointmentListQuery extends PaginationQuery {
+  scheduledDate?: string;
+}
+
 export interface CreateAppointmentInput {
   userId: string;
   examId: string;
@@ -49,9 +53,9 @@ export interface IAppointmentRepository {
   deleteAppointment(id: string): Promise<boolean>;
   listByUserId(
     userId: string,
-    pagination: PaginationQuery,
+    query: AppointmentListQuery,
   ): Promise<PaginatedResult<AppointmentEntity>>;
-  listAll(pagination: PaginationQuery): Promise<PaginatedResult<AppointmentEntity>>;
+  listAll(query: AppointmentListQuery): Promise<PaginatedResult<AppointmentEntity>>;
   clearChangeRequest(id: string, status: AppointmentChangeStatus): Promise<void>;
 }
 

@@ -10,7 +10,7 @@ describe('exam-cache.util', () => {
   it('builds list cache key with version, scope and pagination', () => {
     const key = buildExamsListCacheKey('12', 'active', { page: 3, limit: 25 });
 
-    expect(key).toBe('exams:list:v:12:scope:active:page:3:limit:25');
+    expect(key).toBe('exams:list:v:12:scope:active:page:3:limit:25:sort:DESC');
   });
 
   it('returns current cache version when version exists', async () => {

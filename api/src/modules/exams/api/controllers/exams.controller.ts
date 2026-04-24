@@ -1,5 +1,6 @@
 import { Permission } from '@/domain/commons/enums/permission.enum';
 import { UserProfile } from '@/domain/commons/enums/user-profile.enum';
+import { SortOrder } from '@/domain/commons/enums/sort-order.enum';
 import { ExamEntity } from '@/domain/entities/exam.entity';
 import { ICreateExamUseCase } from '@/domain/interfaces/use-cases/exams/create-exam.use-case';
 import { IDeleteExamUseCase } from '@/domain/interfaces/use-cases/exams/delete-exam.use-case';
@@ -85,6 +86,12 @@ export class ExamsController {
   @ApiOperation({ summary: 'List exams (admin: all, client: active only)' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: SortOrder,
+    example: SortOrder.DESC,
+  })
   @ApiResponse({ status: 200, type: ListExamsResponseDto })
   async listAll(
     @CurrentUser() user: AuthenticatedUser,
