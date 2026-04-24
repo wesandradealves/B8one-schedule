@@ -140,4 +140,45 @@ describe('ImportAppointmentsCsvUseCase', () => {
       skippedRows: 0,
     });
   });
+
+  it('skips duplicated rows from the same csv payload', async () => {
+    const {
+      useCase,
+      appointmentRepository,
+      examRepository,
+      userRepository,
+      messagingProvider,
+    } = createSut();
+
+    userRepository.findById.mockResolvedValue(makeUserEntity({ id: 'user-id-1' }));
+    examRepository.findAnyById.mockResolvedValue(makeExamEntity({ id: 'exam-id-1' }));
+    appointmentRepository.findExamScheduleConflict.mockResolvedValue(null);
+    appointmentRepository.createAppointment.mockResolvedValue(
+      makeAppointmentEntity({ id: 'created-appointment-id', userId: 'user-id-1' }),
+    );
+
+    const output = await useCase.execute({
+      user: makeAuthenticatedUser({ profile: UserProfile.ADMIN }),
+      csvContent:
+        'userId,examId,scheduledAt,status,notes\n' +
+        'user-id-1,exam-id-1,2099-01-01T10:00:00.000Z,SCHEDULED,New note\n' +
+        'user-id-1,exam-id-1,2099-01-01T10:00:00.000Z,SCHEDULED,New note',
+    });
+
+    expect(output).toEqual({
+      processedRows: 2,
+      createdRows: 1,
+      updatedRows: 0,
+      skippedRows: 1,
+      errors: [],
+    });
+    expect(appointmentRepository.createAppointment).toHaveBeenCalledTimes(1);
+    expect(messagingProvider.publish).toHaveBeenCalledWith('appointments.csv.imported', {
+      importedByUserId: 'user-id-1',
+      processedRows: 2,
+      createdRows: 1,
+      updatedRows: 0,
+      skippedRows: 1,
+    });
+  });
 });

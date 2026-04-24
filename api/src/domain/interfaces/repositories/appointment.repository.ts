@@ -2,8 +2,10 @@ import { AppointmentEntity } from '@/domain/entities/appointment.entity';
 import { AppointmentStatus } from '@/domain/commons/enums/appointment-status.enum';
 import { AppointmentChangeStatus } from '@/domain/commons/enums/appointment-change-status.enum';
 import { PaginatedResult, PaginationQuery } from '@/domain/commons/interfaces/pagination.interface';
+import { AppointmentListSortBy } from '@/domain/commons/enums/appointment-list-sort-by.enum';
 
 export interface AppointmentListQuery extends PaginationQuery {
+  sortBy?: AppointmentListSortBy;
   scheduledDate?: string;
 }
 

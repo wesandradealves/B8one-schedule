@@ -1,8 +1,10 @@
 import { isAdmin } from '@/domain/commons/utils/profile-authorization.util';
-import { IUserRepository } from '@/domain/interfaces/repositories/user.repository';
+import {
+  IUserRepository,
+  UsersPaginationQuery,
+} from '@/domain/interfaces/repositories/user.repository';
 import { IListUsersUseCase } from '@/domain/interfaces/use-cases/users/list-users.use-case';
 import { AuthenticatedUser } from '@/domain/types/authenticated-user.type';
-import { PaginationQuery } from '@/domain/commons/interfaces/pagination.interface';
 import { Inject, Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -12,7 +14,7 @@ export class ListUsersUseCase implements IListUsersUseCase {
     private readonly userRepository: IUserRepository,
   ) {}
 
-  async execute(user: AuthenticatedUser, pagination: PaginationQuery) {
+  async execute(user: AuthenticatedUser, pagination: UsersPaginationQuery) {
     if (!isAdmin(user)) {
       const ownUser = await this.userRepository.findById(user.id);
       const total = ownUser ? 1 : 0;

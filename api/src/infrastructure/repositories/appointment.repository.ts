@@ -9,6 +9,7 @@ import {
 import { AppointmentEntity } from '@/domain/entities/appointment.entity';
 import { AppointmentStatus } from '@/domain/commons/enums/appointment-status.enum';
 import { AppointmentChangeStatus } from '@/domain/commons/enums/appointment-change-status.enum';
+import { AppointmentListSortBy } from '@/domain/commons/enums/appointment-list-sort-by.enum';
 import { SortOrder } from '@/domain/commons/enums/sort-order.enum';
 import { PaginatedResult } from '@/domain/commons/interfaces/pagination.interface';
 import { Injectable } from '@nestjs/common';
@@ -192,14 +193,15 @@ export class AppointmentRepository implements IAppointmentRepository {
     query: AppointmentListQuery,
   ): Promise<PaginatedResult<AppointmentEntity>> {
     const sortOrder = query.sortOrder ?? SortOrder.DESC;
+    const sortBy = query.sortBy ?? AppointmentListSortBy.SCHEDULED_AT;
 
     const queryBuilder = this.repository
       .createQueryBuilder('appointment')
       .leftJoinAndSelect('appointment.exam', 'exam')
       .leftJoinAndSelect('appointment.requestedExam', 'requestedExam')
-      .where('appointment.userId = :userId', { userId })
-      .orderBy('appointment.scheduledAt', sortOrder)
-      .addOrderBy('appointment.id', sortOrder);
+      .where('appointment.userId = :userId', { userId });
+
+    this.applyListSorting(queryBuilder, sortBy, sortOrder);
 
     this.applyScheduledDateFilter(queryBuilder, query.scheduledDate);
 
@@ -219,14 +221,15 @@ export class AppointmentRepository implements IAppointmentRepository {
 
   async listAll(query: AppointmentListQuery): Promise<PaginatedResult<AppointmentEntity>> {
     const sortOrder = query.sortOrder ?? SortOrder.DESC;
+    const sortBy = query.sortBy ?? AppointmentListSortBy.SCHEDULED_AT;
 
     const queryBuilder = this.repository
       .createQueryBuilder('appointment')
       .leftJoinAndSelect('appointment.exam', 'exam')
       .leftJoinAndSelect('appointment.requestedExam', 'requestedExam')
-      .leftJoinAndSelect('appointment.user', 'user')
-      .orderBy('appointment.scheduledAt', sortOrder)
-      .addOrderBy('appointment.id', sortOrder);
+      .leftJoinAndSelect('appointment.user', 'user');
+
+    this.applyListSorting(queryBuilder, sortBy, sortOrder);
 
     this.applyScheduledDateFilter(queryBuilder, query.scheduledDate);
 
@@ -286,5 +289,23 @@ export class AppointmentRepository implements IAppointmentRepository {
       start,
       end,
     });
+  }
+
+  private applyListSorting(
+    queryBuilder: ReturnType<Repository<AppointmentEntity>['createQueryBuilder']>,
+    sortBy: AppointmentListSortBy,
+    sortOrder: SortOrder,
+  ): void {
+    if (sortBy === AppointmentListSortBy.STATUS) {
+      queryBuilder
+        .orderBy('appointment.status', sortOrder)
+        .addOrderBy('appointment.scheduledAt', sortOrder)
+        .addOrderBy('appointment.id', sortOrder);
+      return;
+    }
+
+    queryBuilder
+      .orderBy('appointment.scheduledAt', sortOrder)
+      .addOrderBy('appointment.id', sortOrder);
   }
 }

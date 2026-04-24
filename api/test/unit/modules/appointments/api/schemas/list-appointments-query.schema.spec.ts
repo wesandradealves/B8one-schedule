@@ -7,6 +7,7 @@ describe('listAppointmentsQuerySchema', () => {
     expect(result.page).toBe(1);
     expect(result.limit).toBe(10);
     expect(result.sortOrder).toBe('DESC');
+    expect(result.sortBy).toBe('scheduledAt');
     expect(result.scheduledDate).toBeUndefined();
   });
 
@@ -15,12 +16,14 @@ describe('listAppointmentsQuerySchema', () => {
       page: '2',
       limit: '8',
       sortOrder: 'ASC',
+      sortBy: 'status',
       scheduledDate: '2026-05-01',
     });
 
     expect(result.page).toBe(2);
     expect(result.limit).toBe(8);
     expect(result.sortOrder).toBe('ASC');
+    expect(result.sortBy).toBe('status');
     expect(result.scheduledDate).toBe('2026-05-01');
   });
 
@@ -31,6 +34,10 @@ describe('listAppointmentsQuerySchema', () => {
 
     expect(() => {
       listAppointmentsQuerySchema.parse({ scheduledDate: '01-05-2026' });
+    }).toThrow();
+
+    expect(() => {
+      listAppointmentsQuerySchema.parse({ sortBy: 'invalid' });
     }).toThrow();
   });
 });

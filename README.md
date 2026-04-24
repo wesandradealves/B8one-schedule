@@ -438,19 +438,15 @@ Arquivo: `api/src/infrastructure/database/seeds/run-seed.ts`
 ### 8.1 Usuários padrão
 
 - Admin
-  - e-mail: `admin@b8one.com`
+  - e-mail: `cortney.reichel43@ethereal.email`
   - senha: `Admin@123`
   - perfil: `ADMIN`
+  - inbox para OTP/2FA: `https://ethereal.email/`
 - Cliente
   - e-mail: `cliente@b8one.com`
   - senha: `Client@123`
   - perfil: `CLIENT`
-- Cliente (teste SMTP/Ethereal)
-  - e-mail: `cortney.reichel43@ethereal.email`
-  - senha: `teste123`
-  - perfil: `CLIENT`
-  - inbox para OTP/2FA: `https://ethereal.email/`
-  - observação: use as credenciais SMTP configuradas no `.env` da raiz para entrar no painel da inbox de teste.
+- observação: use as credenciais SMTP configuradas no `.env` da raiz para entrar no painel da inbox de teste.
 
 ### 8.2 Exames padrão
 

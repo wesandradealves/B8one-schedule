@@ -130,4 +130,36 @@ describe('ImportUsersCsvUseCase', () => {
       message: 'Row 2: "email" must be valid',
     });
   });
+
+  it('skips duplicated rows from the same csv payload', async () => {
+    const { useCase, userRepository, hashProvider, messagingProvider } = createSut();
+
+    userRepository.findByEmail.mockResolvedValue(null);
+    userRepository.createUser.mockResolvedValue(makeUserEntity({ id: 'new-id' }));
+    hashProvider.hash.mockResolvedValue('hashed-password');
+
+    const output = await useCase.execute({
+      user: makeAuthenticatedUser({ profile: UserProfile.ADMIN }),
+      csvContent:
+        'fullName,email,password,profile,isActive\n' +
+        'New User,new@b8one.com,Secret@123,CLIENT,true\n' +
+        'New User,new@b8one.com,Secret@123,CLIENT,true',
+    });
+
+    expect(output).toEqual({
+      processedRows: 2,
+      createdRows: 1,
+      updatedRows: 0,
+      skippedRows: 1,
+      errors: [],
+    });
+    expect(userRepository.createUser).toHaveBeenCalledTimes(1);
+    expect(messagingProvider.publish).toHaveBeenCalledWith('users.csv.imported', {
+      importedByUserId: 'user-id-1',
+      processedRows: 2,
+      createdRows: 1,
+      updatedRows: 0,
+      skippedRows: 1,
+    });
+  });
 });

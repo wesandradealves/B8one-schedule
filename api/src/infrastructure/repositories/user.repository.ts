@@ -1,11 +1,13 @@
 import { UserEntity } from '@/domain/entities/user.entity';
 import { SortOrder } from '@/domain/commons/enums/sort-order.enum';
+import { UserListSortBy } from '@/domain/commons/enums/user-list-sort-by.enum';
 import {
   CreateUserInput,
   IUserRepository,
+  UsersPaginationQuery,
   UpdateUserInput,
 } from '@/domain/interfaces/repositories/user.repository';
-import { PaginatedResult, PaginationQuery } from '@/domain/commons/interfaces/pagination.interface';
+import { PaginatedResult } from '@/domain/commons/interfaces/pagination.interface';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -17,13 +19,31 @@ export class UserRepository implements IUserRepository {
     private readonly repository: Repository<UserEntity>,
   ) {}
 
-  async listAll(pagination: PaginationQuery): Promise<PaginatedResult<UserEntity>> {
+  async listAll(
+    pagination: UsersPaginationQuery,
+  ): Promise<PaginatedResult<UserEntity>> {
     const sortOrder = pagination.sortOrder ?? SortOrder.DESC;
+    const sortBy = pagination.sortBy ?? UserListSortBy.CREATED_AT;
 
-    const [data, total] = await this.repository
-      .createQueryBuilder('user')
-      .orderBy('user.createdAt', sortOrder)
-      .addOrderBy('user.id', sortOrder)
+    const queryBuilder = this.repository.createQueryBuilder('user');
+
+    if (sortBy === UserListSortBy.PROFILE) {
+      queryBuilder
+        .orderBy('user.profile', sortOrder)
+        .addOrderBy('user.createdAt', sortOrder)
+        .addOrderBy('user.id', sortOrder);
+    } else if (sortBy === UserListSortBy.IS_ACTIVE) {
+      queryBuilder
+        .orderBy('user.isActive', sortOrder)
+        .addOrderBy('user.createdAt', sortOrder)
+        .addOrderBy('user.id', sortOrder);
+    } else {
+      queryBuilder
+        .orderBy('user.createdAt', sortOrder)
+        .addOrderBy('user.id', sortOrder);
+    }
+
+    const [data, total] = await queryBuilder
       .skip((pagination.page - 1) * pagination.limit)
       .take(pagination.limit)
       .getManyAndCount();

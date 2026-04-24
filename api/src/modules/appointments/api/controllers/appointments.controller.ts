@@ -2,6 +2,7 @@ import { AppointmentEntity } from '@/domain/entities/appointment.entity';
 import { Permission } from '@/domain/commons/enums/permission.enum';
 import { UserProfile } from '@/domain/commons/enums/user-profile.enum';
 import { SortOrder } from '@/domain/commons/enums/sort-order.enum';
+import { AppointmentListSortBy } from '@/domain/commons/enums/appointment-list-sort-by.enum';
 import { AuthenticatedUser } from '@/domain/types/authenticated-user.type';
 import { ICreateAppointmentUseCase } from '@/domain/interfaces/use-cases/appointments/create-appointment.use-case';
 import { IListAppointmentsUseCase } from '@/domain/interfaces/use-cases/appointments/list-appointments.use-case';
@@ -150,6 +151,12 @@ export class AppointmentsController {
     required: false,
     enum: SortOrder,
     example: SortOrder.DESC,
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    enum: AppointmentListSortBy,
+    example: AppointmentListSortBy.SCHEDULED_AT,
   })
   @ApiQuery({
     name: 'scheduledDate',

@@ -5,6 +5,16 @@ export interface ParsedCsvDocument {
   rows: CsvRow[];
 }
 
+export interface CsvRowWithNumber {
+  row: CsvRow;
+  rowNumber: number;
+}
+
+export interface DeduplicatedCsvRowsResult {
+  uniqueRows: CsvRowWithNumber[];
+  duplicateRows: CsvRowWithNumber[];
+}
+
 type CsvValue = string | number | boolean | Date | null | undefined;
 
 export function parseCsvDocument(csvContent: string): ParsedCsvDocument {
@@ -66,6 +76,36 @@ export function buildCsvContent(
   ];
 
   return output.join('\n');
+}
+
+export function deduplicateCsvRows(
+  rows: CsvRow[],
+  firstDataRowNumber = 2,
+): DeduplicatedCsvRowsResult {
+  const seenRows = new Set<string>();
+  const uniqueRows: CsvRowWithNumber[] = [];
+  const duplicateRows: CsvRowWithNumber[] = [];
+
+  rows.forEach((row, rowIndex) => {
+    const rowWithNumber = {
+      row,
+      rowNumber: firstDataRowNumber + rowIndex,
+    };
+    const serializedRow = serializeCsvRow(row);
+
+    if (seenRows.has(serializedRow)) {
+      duplicateRows.push(rowWithNumber);
+      return;
+    }
+
+    seenRows.add(serializedRow);
+    uniqueRows.push(rowWithNumber);
+  });
+
+  return {
+    uniqueRows,
+    duplicateRows,
+  };
 }
 
 function normalizeCsvContent(csvContent: string): string {
@@ -173,4 +213,9 @@ function escapeCsvValue(value: string): string {
   }
 
   return value;
+}
+
+function serializeCsvRow(row: CsvRow): string {
+  const keys = Object.keys(row).sort((left, right) => left.localeCompare(right));
+  return keys.map((key) => `${key}:${row[key]}`).join('|');
 }

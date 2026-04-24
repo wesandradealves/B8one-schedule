@@ -1,6 +1,7 @@
 import { Permission } from '@/domain/commons/enums/permission.enum';
 import { UserProfile } from '@/domain/commons/enums/user-profile.enum';
 import { SortOrder } from '@/domain/commons/enums/sort-order.enum';
+import { ExamListSortBy } from '@/domain/commons/enums/exam-list-sort-by.enum';
 import { ExamEntity } from '@/domain/entities/exam.entity';
 import { ICreateExamUseCase } from '@/domain/interfaces/use-cases/exams/create-exam.use-case';
 import { IDeleteExamUseCase } from '@/domain/interfaces/use-cases/exams/delete-exam.use-case';
@@ -47,15 +48,15 @@ import { CsvImportRequestDto } from '@/modules/shared/dto/csv-import.request.dto
 import { CsvImportResponseDto } from '@/modules/shared/dto/csv-import.response.dto';
 import { CsvExportResponseDto } from '@/modules/shared/dto/csv-export.response.dto';
 import {
-  PaginationQuerySchemaType,
-  paginationQuerySchema,
-} from '@/modules/shared/utils/pagination-query.schema';
-import {
   CsvImportSchemaType,
   csvImportSchema,
 } from '@/modules/shared/utils/csv-import.schema';
 import { createExamSchema } from '../schemas/create-exam.schema';
 import { examIdParamSchema } from '../schemas/exam-id-param.schema';
+import {
+  ListExamsQuerySchemaType,
+  listExamsQuerySchema,
+} from '../schemas/list-exams-query.schema';
 import { updateExamSchema } from '../schemas/update-exam.schema';
 
 @ApiTags('Exams')
@@ -92,11 +93,17 @@ export class ExamsController {
     enum: SortOrder,
     example: SortOrder.DESC,
   })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    enum: ExamListSortBy,
+    example: ExamListSortBy.CREATED_AT,
+  })
   @ApiResponse({ status: 200, type: ListExamsResponseDto })
   async listAll(
     @CurrentUser() user: AuthenticatedUser,
-    @Query(new ZodValidationPipe(paginationQuerySchema))
-    pagination: PaginationQuerySchemaType,
+    @Query(new ZodValidationPipe(listExamsQuerySchema))
+    pagination: ListExamsQuerySchemaType,
   ): Promise<ListExamsResponseDto> {
     const result = await this.listAllExamsUseCase.execute(user, pagination);
 

@@ -1,5 +1,6 @@
 import { Permission } from '@/domain/commons/enums/permission.enum';
 import { UserProfile } from '@/domain/commons/enums/user-profile.enum';
+import { UserListSortBy } from '@/domain/commons/enums/user-list-sort-by.enum';
 import { SortOrder } from '@/domain/commons/enums/sort-order.enum';
 import { UserEntity } from '@/domain/entities/user.entity';
 import { ICreateUserUseCase } from '@/domain/interfaces/use-cases/users/create-user.use-case';
@@ -47,14 +48,14 @@ import { CsvImportRequestDto } from '@/modules/shared/dto/csv-import.request.dto
 import { CsvImportResponseDto } from '@/modules/shared/dto/csv-import.response.dto';
 import { CsvExportResponseDto } from '@/modules/shared/dto/csv-export.response.dto';
 import {
-  PaginationQuerySchemaType,
-  paginationQuerySchema,
-} from '@/modules/shared/utils/pagination-query.schema';
-import {
   CsvImportSchemaType,
   csvImportSchema,
 } from '@/modules/shared/utils/csv-import.schema';
 import { createUserSchema } from '../schemas/create-user.schema';
+import {
+  ListUsersQuerySchemaType,
+  listUsersQuerySchema,
+} from '../schemas/list-users-query.schema';
 import { updateUserSchema } from '../schemas/update-user.schema';
 import { userIdParamSchema } from '../schemas/user-id-param.schema';
 
@@ -92,11 +93,17 @@ export class UsersController {
     enum: SortOrder,
     example: SortOrder.DESC,
   })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    enum: UserListSortBy,
+    example: UserListSortBy.CREATED_AT,
+  })
   @ApiResponse({ status: 200, type: ListUsersResponseDto })
   async listAll(
     @CurrentUser() user: AuthenticatedUser,
-    @Query(new ZodValidationPipe(paginationQuerySchema))
-    pagination: PaginationQuerySchemaType,
+    @Query(new ZodValidationPipe(listUsersQuerySchema))
+    pagination: ListUsersQuerySchemaType,
   ): Promise<ListUsersResponseDto> {
     const result = await this.listUsersUseCase.execute(user, pagination);
 

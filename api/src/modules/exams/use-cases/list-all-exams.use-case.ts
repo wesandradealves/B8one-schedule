@@ -4,9 +4,8 @@ import {
   getExamsListCacheVersion,
 } from '@/domain/commons/utils/exam-cache.util';
 import { isAdmin } from '@/domain/commons/utils/profile-authorization.util';
-import { PaginationQuery } from '@/domain/commons/interfaces/pagination.interface';
 import { ICacheProvider } from '@/domain/interfaces/providers/cache.provider';
-import { IExamRepository } from '@/domain/interfaces/repositories/exam.repository';
+import { ExamPaginationQuery, IExamRepository } from '@/domain/interfaces/repositories/exam.repository';
 import { IListAllExamsUseCase } from '@/domain/interfaces/use-cases/exams/list-all-exams.use-case';
 import { AuthenticatedUser } from '@/domain/types/authenticated-user.type';
 import { Inject, Injectable } from '@nestjs/common';
@@ -20,7 +19,7 @@ export class ListAllExamsUseCase implements IListAllExamsUseCase {
     private readonly cacheProvider: ICacheProvider,
   ) {}
 
-  async execute(user: AuthenticatedUser, pagination: PaginationQuery) {
+  async execute(user: AuthenticatedUser, pagination: ExamPaginationQuery) {
     const scope = isAdmin(user) ? 'all' : 'active';
     const cacheVersion = await getExamsListCacheVersion(this.cacheProvider);
     const cacheKey = buildExamsListCacheKey(cacheVersion, scope, pagination);

@@ -1,11 +1,13 @@
 import { ExamEntity } from '@/domain/entities/exam.entity';
 import { SortOrder } from '@/domain/commons/enums/sort-order.enum';
+import { ExamListSortBy } from '@/domain/commons/enums/exam-list-sort-by.enum';
 import {
   CreateExamInput,
+  ExamPaginationQuery,
   IExamRepository,
   UpdateExamInput,
 } from '@/domain/interfaces/repositories/exam.repository';
-import { PaginatedResult, PaginationQuery } from '@/domain/commons/interfaces/pagination.interface';
+import { PaginatedResult } from '@/domain/commons/interfaces/pagination.interface';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -32,14 +34,17 @@ export class ExamRepository implements IExamRepository {
       .getOne();
   }
 
-  async listActive(pagination: PaginationQuery): Promise<PaginatedResult<ExamEntity>> {
+  async listActive(pagination: ExamPaginationQuery): Promise<PaginatedResult<ExamEntity>> {
     const sortOrder = pagination.sortOrder ?? SortOrder.DESC;
+    const sortBy = pagination.sortBy ?? ExamListSortBy.CREATED_AT;
 
-    const [data, total] = await this.repository
+    const queryBuilder = this.repository
       .createQueryBuilder('exam')
-      .where('exam.isActive = :isActive', { isActive: true })
-      .orderBy('exam.createdAt', sortOrder)
-      .addOrderBy('exam.id', sortOrder)
+      .where('exam.isActive = :isActive', { isActive: true });
+
+    this.applyListSorting(queryBuilder, sortBy, sortOrder);
+
+    const [data, total] = await queryBuilder
       .skip((pagination.page - 1) * pagination.limit)
       .take(pagination.limit)
       .getManyAndCount();
@@ -53,13 +58,15 @@ export class ExamRepository implements IExamRepository {
     };
   }
 
-  async listAll(pagination: PaginationQuery): Promise<PaginatedResult<ExamEntity>> {
+  async listAll(pagination: ExamPaginationQuery): Promise<PaginatedResult<ExamEntity>> {
     const sortOrder = pagination.sortOrder ?? SortOrder.DESC;
+    const sortBy = pagination.sortBy ?? ExamListSortBy.CREATED_AT;
 
-    const [data, total] = await this.repository
-      .createQueryBuilder('exam')
-      .orderBy('exam.createdAt', sortOrder)
-      .addOrderBy('exam.id', sortOrder)
+    const queryBuilder = this.repository.createQueryBuilder('exam');
+
+    this.applyListSorting(queryBuilder, sortBy, sortOrder);
+
+    const [data, total] = await queryBuilder
       .skip((pagination.page - 1) * pagination.limit)
       .take(pagination.limit)
       .getManyAndCount();
@@ -144,5 +151,23 @@ export class ExamRepository implements IExamRepository {
       .execute();
 
     return (result.affected ?? 0) > 0;
+  }
+
+  private applyListSorting(
+    queryBuilder: ReturnType<Repository<ExamEntity>['createQueryBuilder']>,
+    sortBy: ExamListSortBy,
+    sortOrder: SortOrder,
+  ): void {
+    if (sortBy === ExamListSortBy.PRICE_CENTS) {
+      queryBuilder
+        .orderBy('exam.priceCents', sortOrder)
+        .addOrderBy('exam.createdAt', sortOrder)
+        .addOrderBy('exam.id', sortOrder);
+      return;
+    }
+
+    queryBuilder
+      .orderBy('exam.createdAt', sortOrder)
+      .addOrderBy('exam.id', sortOrder);
   }
 }
