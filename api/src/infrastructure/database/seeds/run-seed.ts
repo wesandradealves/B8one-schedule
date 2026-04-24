@@ -2,6 +2,7 @@ import dataSource from '@/infrastructure/database/config/typeorm.data-source';
 import { ExamEntity } from '@/domain/entities/exam.entity';
 import { UserEntity } from '@/domain/entities/user.entity';
 import { UserProfile } from '@/domain/commons/enums/user-profile.enum';
+import { Logger } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
 const examsSeedData: Array<Partial<ExamEntity>> = [
@@ -78,14 +79,16 @@ async function runSeed(): Promise<void> {
   await dataSource.destroy();
 }
 
+const logger = new Logger('SeedRunner');
+
 runSeed()
   .then(() => {
-    // eslint-disable-next-line no-console
-    console.log('Seed executed successfully');
+    logger.log('Seed executed successfully');
   })
   .catch(async (error) => {
-    // eslint-disable-next-line no-console
-    console.error('Seed failed:', error);
+    const stack = error instanceof Error ? error.stack : undefined;
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error(`Seed failed: ${message}`, stack);
     if (dataSource.isInitialized) {
       await dataSource.destroy();
     }
