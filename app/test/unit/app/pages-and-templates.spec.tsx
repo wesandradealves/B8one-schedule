@@ -23,6 +23,21 @@ jest.mock('@/components/organisms/protected/my-account-form', () => ({
   MyAccountForm: () => <div>my-account-form</div>,
 }));
 
+jest.mock('@/components/organisms/protected/exams-list-section', () => ({
+  __esModule: true,
+  ExamsListSection: () => <div>exams-list-section</div>,
+}));
+
+jest.mock('@/components/organisms/protected/appointments-list-section', () => ({
+  __esModule: true,
+  AppointmentsListSection: () => <div>appointments-list-section</div>,
+}));
+
+jest.mock('@/components/organisms/protected/users-list-section', () => ({
+  __esModule: true,
+  UsersListSection: () => <div>users-list-section</div>,
+}));
+
 jest.mock('@/hooks/useAuth', () => ({
   __esModule: true,
   useAuth: () => ({
@@ -61,13 +76,13 @@ describe('app pages and route-group templates', () => {
     expect(screen.getByText('Área autenticada')).toBeInTheDocument();
 
     render(<ExamsPage />);
-    expect(screen.getByText('Exames')).toBeInTheDocument();
+    expect(screen.getByText('exams-list-section')).toBeInTheDocument();
 
     render(<AppointmentsPage />);
-    expect(screen.getByText('Agendamentos')).toBeInTheDocument();
+    expect(screen.getByText('appointments-list-section')).toBeInTheDocument();
 
     render(<UsersPage />);
-    expect(screen.getByText('Usuários')).toBeInTheDocument();
+    expect(screen.getByText('users-list-section')).toBeInTheDocument();
 
     render(<MyAccountPage />);
     expect(screen.getByText('my-account-form')).toBeInTheDocument();

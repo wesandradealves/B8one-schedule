@@ -1,3 +1,5 @@
+export type SortOrder = 'ASC' | 'DESC';
+
 export interface PaginatedResult<T> {
   data: T[];
   page: number;
@@ -9,6 +11,7 @@ export interface PaginatedResult<T> {
 export interface PaginationQueryParams {
   page?: number;
   limit?: number;
+  sortOrder?: SortOrder;
 }
 
 export interface ApiErrorPayload {

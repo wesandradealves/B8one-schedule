@@ -671,6 +671,22 @@ Implementações aplicadas e validadas no fluxo de autenticação:
 
 ![Tela de recuperação de senha](docs/screenshots/recovery-password.png)
 
+#### Minha conta
+
+![Tela de minha conta](docs/screenshots/my-account.png)
+
+#### Exames (listagem)
+
+![Tela de listagem de exames](docs/screenshots/exams-list.png)
+
+#### Agendamentos (listagem)
+
+![Tela de listagem de agendamentos](docs/screenshots/appointments-list.png)
+
+#### Usuários (listagem admin)
+
+![Tela de listagem de usuários](docs/screenshots/users-list.png)
+
 ## 13. Validação Executada (Backend)
 
 Executado em `api/`:

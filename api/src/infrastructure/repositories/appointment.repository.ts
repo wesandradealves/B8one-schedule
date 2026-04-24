@@ -1,5 +1,6 @@
 import {
   ApproveAppointmentChangeInput,
+  AppointmentListQuery,
   CreateAppointmentInput,
   IAppointmentRepository,
   RequestAppointmentChangeInput,
@@ -8,7 +9,8 @@ import {
 import { AppointmentEntity } from '@/domain/entities/appointment.entity';
 import { AppointmentStatus } from '@/domain/commons/enums/appointment-status.enum';
 import { AppointmentChangeStatus } from '@/domain/commons/enums/appointment-change-status.enum';
-import { PaginatedResult, PaginationQuery } from '@/domain/commons/interfaces/pagination.interface';
+import { SortOrder } from '@/domain/commons/enums/sort-order.enum';
+import { PaginatedResult } from '@/domain/commons/interfaces/pagination.interface';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -187,44 +189,58 @@ export class AppointmentRepository implements IAppointmentRepository {
 
   async listByUserId(
     userId: string,
-    pagination: PaginationQuery,
+    query: AppointmentListQuery,
   ): Promise<PaginatedResult<AppointmentEntity>> {
-    const [data, total] = await this.repository
+    const sortOrder = query.sortOrder ?? SortOrder.DESC;
+
+    const queryBuilder = this.repository
       .createQueryBuilder('appointment')
       .leftJoinAndSelect('appointment.exam', 'exam')
       .leftJoinAndSelect('appointment.requestedExam', 'requestedExam')
       .where('appointment.userId = :userId', { userId })
-      .orderBy('appointment.scheduledAt', 'DESC')
-      .skip((pagination.page - 1) * pagination.limit)
-      .take(pagination.limit)
+      .orderBy('appointment.scheduledAt', sortOrder)
+      .addOrderBy('appointment.id', sortOrder);
+
+    this.applyScheduledDateFilter(queryBuilder, query.scheduledDate);
+
+    const [data, total] = await queryBuilder
+      .skip((query.page - 1) * query.limit)
+      .take(query.limit)
       .getManyAndCount();
 
     return {
       data,
-      page: pagination.page,
-      limit: pagination.limit,
+      page: query.page,
+      limit: query.limit,
       total,
-      totalPages: total === 0 ? 0 : Math.ceil(total / pagination.limit),
+      totalPages: total === 0 ? 0 : Math.ceil(total / query.limit),
     };
   }
 
-  async listAll(pagination: PaginationQuery): Promise<PaginatedResult<AppointmentEntity>> {
-    const [data, total] = await this.repository
+  async listAll(query: AppointmentListQuery): Promise<PaginatedResult<AppointmentEntity>> {
+    const sortOrder = query.sortOrder ?? SortOrder.DESC;
+
+    const queryBuilder = this.repository
       .createQueryBuilder('appointment')
       .leftJoinAndSelect('appointment.exam', 'exam')
       .leftJoinAndSelect('appointment.requestedExam', 'requestedExam')
       .leftJoinAndSelect('appointment.user', 'user')
-      .orderBy('appointment.scheduledAt', 'DESC')
-      .skip((pagination.page - 1) * pagination.limit)
-      .take(pagination.limit)
+      .orderBy('appointment.scheduledAt', sortOrder)
+      .addOrderBy('appointment.id', sortOrder);
+
+    this.applyScheduledDateFilter(queryBuilder, query.scheduledDate);
+
+    const [data, total] = await queryBuilder
+      .skip((query.page - 1) * query.limit)
+      .take(query.limit)
       .getManyAndCount();
 
     return {
       data,
-      page: pagination.page,
-      limit: pagination.limit,
+      page: query.page,
+      limit: query.limit,
       total,
-      totalPages: total === 0 ? 0 : Math.ceil(total / pagination.limit),
+      totalPages: total === 0 ? 0 : Math.ceil(total / query.limit),
     };
   }
 
@@ -249,5 +265,26 @@ export class AppointmentRepository implements IAppointmentRepository {
       .leftJoinAndSelect('appointment.requestedExam', 'requestedExam')
       .where('appointment.id = :id', { id })
       .getOneOrFail();
+  }
+
+  private applyScheduledDateFilter(
+    queryBuilder: ReturnType<Repository<AppointmentEntity>['createQueryBuilder']>,
+    scheduledDate?: string,
+  ): void {
+    if (!scheduledDate) {
+      return;
+    }
+
+    const start = new Date(`${scheduledDate}T00:00:00.000Z`);
+    const end = new Date(`${scheduledDate}T23:59:59.999Z`);
+
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return;
+    }
+
+    queryBuilder.andWhere('appointment.scheduledAt BETWEEN :start AND :end', {
+      start,
+      end,
+    });
   }
 }

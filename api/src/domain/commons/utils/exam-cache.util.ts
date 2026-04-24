@@ -1,4 +1,5 @@
 import { PaginationQuery } from '@/domain/commons/interfaces/pagination.interface';
+import { SortOrder } from '@/domain/commons/enums/sort-order.enum';
 import {
   EXAMS_LIST_CACHE_TTL_SECONDS,
   EXAMS_LIST_CACHE_VERSION_KEY,
@@ -14,7 +15,8 @@ export function buildExamsListCacheKey(
   scope: ExamsListScope,
   pagination: PaginationQuery,
 ): string {
-  return `${EXAMS_LIST_CACHE_KEY_PREFIX}:v:${version}:scope:${scope}:page:${pagination.page}:limit:${pagination.limit}`;
+  const sortOrder = pagination.sortOrder ?? SortOrder.DESC;
+  return `${EXAMS_LIST_CACHE_KEY_PREFIX}:v:${version}:scope:${scope}:page:${pagination.page}:limit:${pagination.limit}:sort:${sortOrder}`;
 }
 
 export async function getExamsListCacheVersion(

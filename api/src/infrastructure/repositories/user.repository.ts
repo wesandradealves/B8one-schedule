@@ -1,4 +1,5 @@
 import { UserEntity } from '@/domain/entities/user.entity';
+import { SortOrder } from '@/domain/commons/enums/sort-order.enum';
 import {
   CreateUserInput,
   IUserRepository,
@@ -17,9 +18,12 @@ export class UserRepository implements IUserRepository {
   ) {}
 
   async listAll(pagination: PaginationQuery): Promise<PaginatedResult<UserEntity>> {
+    const sortOrder = pagination.sortOrder ?? SortOrder.DESC;
+
     const [data, total] = await this.repository
       .createQueryBuilder('user')
-      .orderBy('user.createdAt', 'DESC')
+      .orderBy('user.createdAt', sortOrder)
+      .addOrderBy('user.id', sortOrder)
       .skip((pagination.page - 1) * pagination.limit)
       .take(pagination.limit)
       .getManyAndCount();

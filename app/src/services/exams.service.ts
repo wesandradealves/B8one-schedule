@@ -20,3 +20,21 @@ export const listExams = async (
 export const getExamById = async (id: string): Promise<Exam> => {
   return executeRequest(() => api.get<Exam>(`/exams/${id}`));
 };
+
+export interface UpdateExamPayload {
+  name?: string;
+  description?: string | null;
+  durationMinutes?: number;
+  priceCents?: number;
+}
+
+export const updateExamById = async (
+  id: string,
+  payload: UpdateExamPayload,
+): Promise<Exam> => {
+  return executeRequest(() => api.patch<Exam>(`/exams/${id}`, payload));
+};
+
+export const deleteExamById = async (id: string): Promise<void> => {
+  await executeRequest(() => api.delete<void>(`/exams/${id}`));
+};

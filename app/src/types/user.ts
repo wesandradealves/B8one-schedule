@@ -10,5 +10,8 @@ export interface User {
 
 export interface UpdateUserPayload {
   fullName?: string;
+  email?: string;
   password?: string;
+  profile?: UserProfile;
+  isActive?: boolean;
 }

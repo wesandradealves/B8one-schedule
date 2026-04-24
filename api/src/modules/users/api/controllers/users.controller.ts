@@ -1,5 +1,6 @@
 import { Permission } from '@/domain/commons/enums/permission.enum';
 import { UserProfile } from '@/domain/commons/enums/user-profile.enum';
+import { SortOrder } from '@/domain/commons/enums/sort-order.enum';
 import { UserEntity } from '@/domain/entities/user.entity';
 import { ICreateUserUseCase } from '@/domain/interfaces/use-cases/users/create-user.use-case';
 import { IDeleteUserUseCase } from '@/domain/interfaces/use-cases/users/delete-user.use-case';
@@ -85,6 +86,12 @@ export class UsersController {
   @ApiOperation({ summary: 'List users (admin: all, client: own)' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: SortOrder,
+    example: SortOrder.DESC,
+  })
   @ApiResponse({ status: 200, type: ListUsersResponseDto })
   async listAll(
     @CurrentUser() user: AuthenticatedUser,

@@ -19,7 +19,7 @@ const TopbarTitle = styled.h1.attrs({
   color: var(--color-text-primary);
 `;
 
-const APP_TITLE = env.APP_NAME.toUpperCase();
+const APP_TITLE = env.APP_NAME;
 
 export function ProtectedTopbar() {
   const { displayName, initials } = useUserDisplay();

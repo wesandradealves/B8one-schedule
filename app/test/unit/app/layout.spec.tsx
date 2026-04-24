@@ -19,7 +19,7 @@ describe('RootLayout', () => {
   it('should expose base metadata contract', () => {
     expect(metadata.description).toBe('Portal de agendamento de exames');
     expect(metadata.title).toMatchObject({
-      default: 'B8one Agendamentos',
+      default: 'Agendamentos',
     });
   });
 
