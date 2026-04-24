@@ -8,12 +8,18 @@ import {
   UpdateUserInput,
 } from '@/domain/interfaces/repositories/user.repository';
 import { PaginatedResult } from '@/domain/commons/interfaces/pagination.interface';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 
 @Injectable()
 export class UserRepository implements IUserRepository {
+  private static readonly DUPLICATE_KEY_ERROR_CODE = '23505';
+  private static readonly EMAIL_UNIQUE_CONSTRAINTS = new Set([
+    'UQ_users_email',
+    'UQ_users_email_lower',
+  ]);
+
   constructor(
     @InjectRepository(UserEntity)
     private readonly repository: Repository<UserEntity>,
@@ -89,19 +95,29 @@ export class UserRepository implements IUserRepository {
   }
 
   async createUser(input: CreateUserInput): Promise<UserEntity> {
-    const insertResult = await this.repository
-      .createQueryBuilder()
-      .insert()
-      .into(UserEntity)
-      .values({
-        fullName: input.fullName,
-        email: input.email.trim().toLowerCase(),
-        passwordHash: input.passwordHash,
-        profile: input.profile,
-        isActive: input.isActive,
-      })
-      .returning('id')
-      .execute();
+    let insertResult: { identifiers: Array<{ id?: string }> };
+
+    try {
+      insertResult = await this.repository
+        .createQueryBuilder()
+        .insert()
+        .into(UserEntity)
+        .values({
+          fullName: input.fullName,
+          email: input.email.trim().toLowerCase(),
+          passwordHash: input.passwordHash,
+          profile: input.profile,
+          isActive: input.isActive,
+        })
+        .returning('id')
+        .execute();
+    } catch (error) {
+      if (this.isDuplicateEmailError(error)) {
+        throw new BadRequestException('E-mail already in use');
+      }
+
+      throw error;
+    }
 
     const userId = String(insertResult.identifiers[0]?.id);
     return this.findByIdOrFail(userId);
@@ -130,12 +146,20 @@ export class UserRepository implements IUserRepository {
       return this.findById(id);
     }
 
-    await this.repository
-      .createQueryBuilder()
-      .update(UserEntity)
-      .set(payload)
-      .where('id = :id', { id })
-      .execute();
+    try {
+      await this.repository
+        .createQueryBuilder()
+        .update(UserEntity)
+        .set(payload)
+        .where('id = :id', { id })
+        .execute();
+    } catch (error) {
+      if (this.isDuplicateEmailError(error)) {
+        throw new BadRequestException('E-mail already in use');
+      }
+
+      throw error;
+    }
 
     return this.findById(id);
   }
@@ -156,5 +180,20 @@ export class UserRepository implements IUserRepository {
       .createQueryBuilder('user')
       .where('user.id = :id', { id })
       .getOneOrFail();
+  }
+
+  private isDuplicateEmailError(error: unknown): boolean {
+    if (!(error instanceof QueryFailedError)) {
+      return false;
+    }
+
+    const driverError = (error as QueryFailedError & {
+      driverError?: { code?: string; constraint?: string };
+    }).driverError;
+
+    return (
+      driverError?.code === UserRepository.DUPLICATE_KEY_ERROR_CODE &&
+      UserRepository.EMAIL_UNIQUE_CONSTRAINTS.has(driverError.constraint ?? '')
+    );
   }
 }

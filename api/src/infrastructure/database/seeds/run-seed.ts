@@ -25,14 +25,14 @@ const usersSeedData = async (): Promise<Array<Partial<UserEntity>>> => {
   return [
     {
       fullName: 'Administrador B8one',
-      email: 'cortney.reichel43@ethereal.email',
+      email: 'admin@b8one.com',
       passwordHash: adminPasswordHash,
       profile: UserProfile.ADMIN,
       isActive: true,
     },
     {
       fullName: 'Cliente B8one',
-      email: 'cliente@b8one.com',
+      email: 'cortney.reichel43@ethereal.email',
       passwordHash: clientPasswordHash,
       profile: UserProfile.CLIENT,
       isActive: true,
