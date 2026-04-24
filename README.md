@@ -671,6 +671,10 @@ Implementações aplicadas e validadas no fluxo de autenticação:
 
 ![Tela de recuperação de senha](docs/screenshots/recovery-password.png)
 
+#### Minha conta
+
+![Tela de minha conta](docs/screenshots/my-account.png)
+
 ## 13. Validação Executada (Backend)
 
 Executado em `api/`:
