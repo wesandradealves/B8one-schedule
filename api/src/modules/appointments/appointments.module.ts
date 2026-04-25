@@ -5,6 +5,7 @@ import { ICancelAppointmentUseCase } from '@/domain/interfaces/use-cases/appoint
 import { ICreateAppointmentUseCase } from '@/domain/interfaces/use-cases/appointments/create-appointment.use-case';
 import { IDeleteAppointmentUseCase } from '@/domain/interfaces/use-cases/appointments/delete-appointment.use-case';
 import { IGetAppointmentByIdUseCase } from '@/domain/interfaces/use-cases/appointments/get-appointment-by-id.use-case';
+import { IListAppointmentAvailabilityUseCase } from '@/domain/interfaces/use-cases/appointments/list-appointment-availability.use-case';
 import { IListAppointmentsUseCase } from '@/domain/interfaces/use-cases/appointments/list-appointments.use-case';
 import { IRequestAppointmentChangeUseCase } from '@/domain/interfaces/use-cases/appointments/request-appointment-change.use-case';
 import { IUpdateAppointmentUseCase } from '@/domain/interfaces/use-cases/appointments/update-appointment.use-case';
@@ -22,6 +23,7 @@ import { CancelAppointmentUseCase } from './use-cases/cancel-appointment.use-cas
 import { CreateAppointmentUseCase } from './use-cases/create-appointment.use-case';
 import { DeleteAppointmentUseCase } from './use-cases/delete-appointment.use-case';
 import { GetAppointmentByIdUseCase } from './use-cases/get-appointment-by-id.use-case';
+import { ListAppointmentAvailabilityUseCase } from './use-cases/list-appointment-availability.use-case';
 import { ListAppointmentsUseCase } from './use-cases/list-appointments.use-case';
 import { RequestAppointmentChangeUseCase } from './use-cases/request-appointment-change.use-case';
 import { UpdateAppointmentUseCase } from './use-cases/update-appointment.use-case';
@@ -50,6 +52,10 @@ import { UsersModule } from '../users/users.module';
     {
       provide: IListAppointmentsUseCase,
       useClass: ListAppointmentsUseCase,
+    },
+    {
+      provide: IListAppointmentAvailabilityUseCase,
+      useClass: ListAppointmentAvailabilityUseCase,
     },
     {
       provide: IGetAppointmentByIdUseCase,

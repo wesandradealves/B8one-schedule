@@ -40,7 +40,11 @@ export class UpdateAppointmentUseCase implements IUpdateAppointmentUseCase {
     const targetScheduledAt = input.scheduledAt ?? appointment.scheduledAt;
     const targetNotes = input.notes ?? appointment.notes ?? null;
 
-    if (targetStatus === AppointmentStatus.SCHEDULED) {
+    const requiresActiveScheduleValidation =
+      targetStatus === AppointmentStatus.SCHEDULED ||
+      targetStatus === AppointmentStatus.PENDING;
+
+    if (requiresActiveScheduleValidation) {
       if (targetScheduledAt.getTime() <= Date.now()) {
         throw new BadRequestException('Scheduled date must be in the future');
       }

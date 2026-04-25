@@ -1,7 +1,8 @@
 import { AppointmentEntity } from '@/domain/entities/appointment.entity';
+import { AuthenticatedUser } from '@/domain/types/authenticated-user.type';
 
 export interface CreateAppointmentUseCaseInput {
-  userId: string;
+  user: AuthenticatedUser;
   examId: string;
   scheduledAt: Date;
   notes?: string;

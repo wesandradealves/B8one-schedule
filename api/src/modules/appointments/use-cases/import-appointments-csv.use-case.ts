@@ -120,9 +120,12 @@ export class ImportAppointmentsCsvUseCase implements IImportAppointmentsCsvUseCa
       throw new Error(`Row ${rowNumber}: "examId" references an invalid exam`);
     }
 
-    if (status === AppointmentStatus.SCHEDULED && scheduledAt.getTime() <= Date.now()) {
+    const isActiveStatus =
+      status === AppointmentStatus.PENDING || status === AppointmentStatus.SCHEDULED;
+
+    if (isActiveStatus && scheduledAt.getTime() <= Date.now()) {
       throw new Error(
-        `Row ${rowNumber}: "scheduledAt" must be in the future for scheduled appointments`,
+        `Row ${rowNumber}: "scheduledAt" must be in the future for active appointments`,
       );
     }
 
@@ -132,7 +135,7 @@ export class ImportAppointmentsCsvUseCase implements IImportAppointmentsCsvUseCa
       rowId ?? undefined,
     );
 
-    if (conflict && status === AppointmentStatus.SCHEDULED) {
+    if (conflict && isActiveStatus) {
       throw new Error(
         `Row ${rowNumber}: there is already an appointment for this exam/time slot`,
       );
@@ -164,25 +167,20 @@ export class ImportAppointmentsCsvUseCase implements IImportAppointmentsCsvUseCa
       return 'updated';
     }
 
-    const createdAppointment = await this.appointmentRepository.createAppointment({
+    await this.appointmentRepository.createAppointment({
       userId,
       examId,
       scheduledAt,
       notes: notes ?? undefined,
+      status,
     });
-
-    if (status !== AppointmentStatus.SCHEDULED) {
-      await this.appointmentRepository.updateAppointment(createdAppointment.id, {
-        status,
-      });
-    }
 
     return 'created';
   }
 
   private parseStatus(rawValue: string | null, rowNumber: number): AppointmentStatus {
     if (!rawValue) {
-      return AppointmentStatus.SCHEDULED;
+      return AppointmentStatus.PENDING;
     }
 
     const normalized = rawValue.trim().toUpperCase() as AppointmentStatus;
