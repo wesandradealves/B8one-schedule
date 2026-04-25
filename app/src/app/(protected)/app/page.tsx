@@ -1,6 +1,6 @@
 import { buildSeoMetadata } from '@/utils/seo';
-import { PageContainer, PageDescription, PageTitle } from '@/components/shared/page-container';
 import { APP_ROUTES } from '@/utils/route';
+import { ClientHomeExamsSection } from '@/components/organisms/protected/client-home-exams-section';
 
 export const metadata = buildSeoMetadata({
   title: 'Aplicação',
@@ -9,12 +9,5 @@ export const metadata = buildSeoMetadata({
 });
 
 export default function AppHomePage() {
-  return (
-    <PageContainer>
-      <PageTitle>Área autenticada</PageTitle>
-      <PageDescription>
-        Espaço reservado para o conteúdo principal da dashboard.
-      </PageDescription>
-    </PageContainer>
-  );
+  return <ClientHomeExamsSection />;
 }

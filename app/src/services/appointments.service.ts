@@ -7,6 +7,7 @@ import type {
 } from '@/types/api';
 import type {
   Appointment,
+  AppointmentAvailabilitySlot,
   AppointmentListSortBy,
   AppointmentStatus,
 } from '@/types/appointment';
@@ -23,6 +24,12 @@ interface ListAppointmentsParams extends PaginationQueryParams {
   sortBy?: AppointmentListSortBy;
 }
 
+interface ListAppointmentAvailabilityParams {
+  examId: string;
+  startsAt: string;
+  endsAt: string;
+}
+
 interface UpdateAppointmentPayload {
   examId?: string;
   scheduledAt?: string;
@@ -35,6 +42,16 @@ export const listAppointments = async (
 ): Promise<PaginatedResult<Appointment>> => {
   return executeRequest(() =>
     api.get<PaginatedResult<Appointment>>('/appointments/all', {
+      params,
+    }),
+  );
+};
+
+export const listAppointmentAvailability = async (
+  params: ListAppointmentAvailabilityParams,
+): Promise<AppointmentAvailabilitySlot[]> => {
+  return executeRequest(() =>
+    api.get<AppointmentAvailabilitySlot[]>('/appointments/availability', {
       params,
     }),
   );

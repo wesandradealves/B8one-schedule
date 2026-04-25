@@ -22,7 +22,7 @@ import type {
 import { formatDateTime } from '@/utils/format';
 
 const Controls = styled.div.attrs({
-  className: 'flex items-center gap-2',
+  className: 'flex flex-wrap items-center justify-center gap-2',
 })``;
 
 const FilterWrapper = styled.div.attrs({
@@ -42,12 +42,18 @@ const FilterLabel = styled.label.attrs({
 const StatusBadge = styled.span.attrs<{ $status: AppointmentStatus }>(({ $status }) => ({
   className:
     'inline-flex items-center justify-center rounded-full px-2 py-1 text-xs font-semibold ' +
-    ($status === 'SCHEDULED'
-      ? 'bg-emerald-100 text-emerald-700'
-      : 'bg-slate-200 text-slate-700'),
+    ($status === 'PENDING'
+      ? 'bg-amber-100 text-amber-700'
+      : $status === 'SCHEDULED'
+        ? 'bg-emerald-100 text-emerald-700'
+        : 'bg-slate-200 text-slate-700'),
 }))<{ $status: AppointmentStatus }>``;
 
 const toStatusLabel = (status: string): string => {
+  if (status === 'PENDING') {
+    return 'Pendente';
+  }
+
   return status === 'CANCELLED' ? 'Cancelado' : 'Agendado';
 };
 
@@ -85,6 +91,7 @@ export function AppointmentsListSection() {
     setEditField,
     saveEdit,
     cancelAppointment,
+    approveAppointment,
     deleteAppointment,
     isImportingCsv,
     isExportingCsv,
@@ -103,6 +110,12 @@ export function AppointmentsListSection() {
     target: targetAppointmentToCancel,
     openConfirmation: openCancelConfirmation,
     closeConfirmation: closeCancelConfirmation,
+  } = useActionConfirmation<Appointment>();
+  const {
+    isOpen: isApproveDialogOpen,
+    target: targetAppointmentToApprove,
+    openConfirmation: openApproveConfirmation,
+    closeConfirmation: closeApproveConfirmation,
   } = useActionConfirmation<Appointment>();
 
   const handleRequestDeleteAppointment = useCallback(
@@ -137,6 +150,23 @@ export function AppointmentsListSection() {
     closeCancelConfirmation();
     await cancelAppointment(targetAppointmentToCancel.id);
   }, [cancelAppointment, closeCancelConfirmation, targetAppointmentToCancel]);
+
+  const handleRequestApproveAppointment = useCallback((appointment: Appointment) => {
+    if (appointment.status !== 'PENDING') {
+      return;
+    }
+
+    openApproveConfirmation(appointment);
+  }, [openApproveConfirmation]);
+
+  const handleConfirmApproveAppointment = useCallback(async () => {
+    if (!targetAppointmentToApprove) {
+      return;
+    }
+
+    closeApproveConfirmation();
+    await approveAppointment(targetAppointmentToApprove.id);
+  }, [approveAppointment, closeApproveConfirmation, targetAppointmentToApprove]);
 
   const headerRight = useMemo(() => {
     return (
@@ -210,93 +240,107 @@ export function AppointmentsListSection() {
   ]);
 
   const columns = useMemo<PaginatedListColumn<Appointment>[]>(() => {
-    const baseColumns: PaginatedListColumn<Appointment>[] = [
-      {
-        key: 'scheduledAt',
-        header: 'Data e hora',
-        render: (appointment) => {
-          if (editingAppointmentId === appointment.id && editForm) {
-            return (
-              <ListFormInput
-                aria-label="Data e hora do agendamento"
-                disabled={isSaving}
-                type="datetime-local"
-                value={editForm.scheduledAt}
-                onChange={(event) => setEditField('scheduledAt', event.target.value)}
-              />
-            );
-          }
+    const dateColumn: PaginatedListColumn<Appointment> = {
+      key: 'scheduledAt',
+      header: 'Data e hora',
+      render: (appointment) => {
+        if (editingAppointmentId === appointment.id && editForm) {
+          return (
+            <ListFormInput
+              aria-label="Data e hora do agendamento"
+              disabled={isSaving}
+              type="datetime-local"
+              value={editForm.scheduledAt}
+              onChange={(event) => setEditField('scheduledAt', event.target.value)}
+            />
+          );
+        }
 
-          return formatDateTime(appointment.scheduledAt);
-        },
+        return formatDateTime(appointment.scheduledAt);
       },
-      {
-        key: 'user',
-        header: 'Usuário',
-        render: (appointment) => {
-          if (appointment.userFullName) {
-            return appointment.userFullName;
-          }
+    };
 
-          if (appointment.userEmail) {
-            return appointment.userEmail;
-          }
+    const userColumn: PaginatedListColumn<Appointment> = {
+      key: 'user',
+      header: 'Usuário',
+      render: (appointment) => {
+        if (appointment.userFullName) {
+          return appointment.userFullName;
+        }
 
-          return '-';
-        },
-      },
-      {
-        key: 'exam',
-        header: 'Exame',
-        render: (appointment) => appointment.examName || '-',
-      },
-      {
-        key: 'status',
-        header: 'Status',
-        align: 'center',
-        render: (appointment) => {
-          if (editingAppointmentId === appointment.id && editForm) {
-            return (
-              <ListFormSelect
-                aria-label="Status do agendamento"
-                disabled={isSaving}
-                value={editForm.status}
-                onChange={(event) =>
-                  setEditField(
-                    'status',
-                    event.target.value as AppointmentStatus,
-                  )
-                }
-              >
-                <option value="SCHEDULED">Agendado</option>
-                <option value="CANCELLED">Cancelado</option>
-              </ListFormSelect>
-            );
-          }
+        if (appointment.userEmail) {
+          return appointment.userEmail;
+        }
 
-          const status = appointment.status === 'CANCELLED' ? 'CANCELLED' : 'SCHEDULED';
-          return <StatusBadge $status={status}>{toStatusLabel(appointment.status)}</StatusBadge>;
-        },
+        return '-';
       },
-      {
-        key: 'notes',
-        header: 'Observações',
-        render: (appointment) => {
-          if (editingAppointmentId === appointment.id && editForm) {
-            return (
-              <ListFormInput
-                aria-label="Observações do agendamento"
-                disabled={isSaving}
-                value={editForm.notes}
-                onChange={(event) => setEditField('notes', event.target.value)}
-              />
-            );
-          }
+    };
 
-          return appointment.notes || '-';
-        },
+    const examColumn: PaginatedListColumn<Appointment> = {
+      key: 'exam',
+      header: 'Exame',
+      render: (appointment) => appointment.examName || '-',
+    };
+
+    const statusColumn: PaginatedListColumn<Appointment> = {
+      key: 'status',
+      header: 'Status',
+      align: 'center',
+      render: (appointment) => {
+        if (editingAppointmentId === appointment.id && editForm) {
+          return (
+            <ListFormSelect
+              aria-label="Status do agendamento"
+              disabled={isSaving}
+              value={editForm.status}
+              onChange={(event) =>
+                setEditField(
+                  'status',
+                  event.target.value as AppointmentStatus,
+                )
+              }
+            >
+              <option value="SCHEDULED">Agendado</option>
+              <option value="CANCELLED">Cancelado</option>
+            </ListFormSelect>
+          );
+        }
+
+        const status = appointment.status as AppointmentStatus;
+        return <StatusBadge $status={status}>{toStatusLabel(appointment.status)}</StatusBadge>;
       },
-    ];
+    };
+
+    const notesColumn: PaginatedListColumn<Appointment> = {
+      key: 'notes',
+      header: 'Observações',
+      render: (appointment) => {
+        if (editingAppointmentId === appointment.id && editForm) {
+          return (
+            <ListFormInput
+              aria-label="Observações do agendamento"
+              disabled={isSaving}
+              value={editForm.notes}
+              onChange={(event) => setEditField('notes', event.target.value)}
+            />
+          );
+        }
+
+        return appointment.notes || '-';
+      },
+    };
+
+    const baseColumns: PaginatedListColumn<Appointment>[] = [dateColumn];
+
+    if (canManageAppointments) {
+      baseColumns.push(userColumn);
+    }
+
+    baseColumns.push(examColumn, statusColumn);
+
+    if (canManageAppointments) {
+      baseColumns.push(notesColumn);
+    }
 
     if (!canManageAppointments && !canCancelAppointments) {
       return baseColumns;
@@ -315,6 +359,34 @@ export function AppointmentsListSection() {
               </ListActionButton>
               <ListActionButton disabled={isSaving} variant="cancel" onClick={cancelEdit}>
                 Cancelar
+              </ListActionButton>
+            </Controls>
+          );
+        }
+
+        if (canManageAppointments && appointment.status === 'PENDING') {
+          return (
+            <Controls>
+              <ListActionButton
+                disabled={isSaving}
+                variant="save"
+                onClick={() => handleRequestApproveAppointment(appointment)}
+              >
+                Aprovar
+              </ListActionButton>
+              <ListActionButton
+                disabled={isSaving}
+                variant="cancel"
+                onClick={() => handleRequestCancelAppointment(appointment)}
+              >
+                Rejeitar
+              </ListActionButton>
+              <ListActionButton
+                disabled={isSaving}
+                variant="delete"
+                onClick={() => handleRequestDeleteAppointment(appointment)}
+              >
+                Excluir
               </ListActionButton>
             </Controls>
           );
@@ -359,6 +431,7 @@ export function AppointmentsListSection() {
     cancelEdit,
     editForm,
     editingAppointmentId,
+    handleRequestApproveAppointment,
     handleRequestCancelAppointment,
     handleRequestDeleteAppointment,
     isSaving,
@@ -401,16 +474,32 @@ export function AppointmentsListSection() {
         onConfirm={() => void handleConfirmDeleteAppointment()}
       />
       <ActionConfirmDialog
+        confirmLabel="Aprovar"
+        confirmVariant="save"
+        description={
+          targetAppointmentToApprove
+            ? `Deseja aprovar o agendamento de ${formatDateTime(targetAppointmentToApprove.scheduledAt)}?`
+            : 'Deseja aprovar o agendamento selecionado?'
+        }
+        isOpen={isApproveDialogOpen}
+        isSubmitting={isSaving}
+        title="Confirmar aprovação"
+        onCancel={closeApproveConfirmation}
+        onConfirm={() => void handleConfirmApproveAppointment()}
+      />
+      <ActionConfirmDialog
         confirmLabel="Confirmar"
         confirmVariant="save"
         description={
           targetAppointmentToCancel
-            ? `Deseja cancelar o agendamento de ${formatDateTime(targetAppointmentToCancel.scheduledAt)}?`
+            ? targetAppointmentToCancel.status === 'PENDING'
+              ? `Deseja rejeitar a solicitação de ${formatDateTime(targetAppointmentToCancel.scheduledAt)}?`
+              : `Deseja cancelar o agendamento de ${formatDateTime(targetAppointmentToCancel.scheduledAt)}?`
             : 'Deseja cancelar o agendamento selecionado?'
         }
         isOpen={isCancelDialogOpen}
         isSubmitting={isSaving}
-        title="Confirmar cancelamento"
+        title={targetAppointmentToCancel?.status === 'PENDING' ? 'Confirmar rejeição' : 'Confirmar cancelamento'}
         onCancel={closeCancelConfirmation}
         onConfirm={() => void handleConfirmCancelAppointment()}
       />

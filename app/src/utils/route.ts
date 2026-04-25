@@ -20,6 +20,10 @@ export const isUsersPath = (pathname: string): boolean => {
   return pathname === APP_ROUTES.users || pathname.startsWith(`${APP_ROUTES.users}/`);
 };
 
+export const isExamsListPath = (pathname: string): boolean => {
+  return pathname === APP_ROUTES.exams;
+};
+
 export const isAppRoute = (candidate: string | null): candidate is string => {
   if (!candidate) {
     return false;

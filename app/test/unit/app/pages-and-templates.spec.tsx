@@ -38,6 +38,11 @@ jest.mock('@/components/organisms/protected/users-list-section', () => ({
   UsersListSection: () => <div>users-list-section</div>,
 }));
 
+jest.mock('@/components/organisms/protected/exam-scheduling-calendar-section', () => ({
+  __esModule: true,
+  ExamSchedulingCalendarSection: () => <div>exam-scheduling-calendar-section</div>,
+}));
+
 jest.mock('@/hooks/useAuth', () => ({
   __esModule: true,
   useAuth: () => ({
@@ -46,6 +51,14 @@ jest.mock('@/hooks/useAuth', () => ({
       email: 'admin@b8one.com',
       profile: 'ADMIN',
     },
+  }),
+}));
+
+jest.mock('@/hooks/useClientHomeExams', () => ({
+  __esModule: true,
+  useClientHomeExams: () => ({
+    exams: [],
+    isLoading: false,
   }),
 }));
 
@@ -93,8 +106,7 @@ describe('app pages and route-group templates', () => {
       params: Promise.resolve({ id: 'exam-1' }),
     });
     render(page);
-    expect(screen.getByText('Detalhes do exame')).toBeInTheDocument();
-    expect(screen.getByText('ID do exame: exam-1')).toBeInTheDocument();
+    expect(screen.getByText('exam-scheduling-calendar-section')).toBeInTheDocument();
 
     const metadata = await generateMetadata({
       params: Promise.resolve({ id: 'exam-1' }),

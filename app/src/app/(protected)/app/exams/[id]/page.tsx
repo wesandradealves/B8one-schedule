@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { buildSeoMetadata } from '@/utils/seo';
-import { PageContainer, PageDescription, PageTitle } from '@/components/shared/page-container';
+import { ExamSchedulingCalendarSection } from '@/components/organisms/protected/exam-scheduling-calendar-section';
 import { APP_ROUTES } from '@/utils/route';
 
 interface ExamDetailsPageProps {
@@ -20,10 +20,5 @@ export async function generateMetadata({ params }: ExamDetailsPageProps): Promis
 export default async function ExamDetailsPage({ params }: ExamDetailsPageProps) {
   const { id } = await params;
 
-  return (
-    <PageContainer>
-      <PageTitle>Detalhes do exame</PageTitle>
-      <PageDescription>ID do exame: {id}</PageDescription>
-    </PageContainer>
-  );
+  return <ExamSchedulingCalendarSection examId={id} />;
 }

@@ -6,6 +6,7 @@ import {
   deleteAppointmentById,
   exportAppointmentsCsv,
   importAppointmentsCsv,
+  listAppointmentAvailability,
   listAppointments,
   updateAppointmentById,
 } from '@/services/appointments.service';
@@ -64,6 +65,23 @@ describe('appointments service', () => {
     const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
     await requestFactory();
     expect(mockedApi.post).toHaveBeenCalledWith('/appointments', payload);
+  });
+
+  it('should list appointment availability through centralized request flow', async () => {
+    (executeRequest as jest.Mock).mockResolvedValue([]);
+
+    const params = {
+      examId: 'exam-1',
+      startsAt: '2026-05-01T00:00:00.000Z',
+      endsAt: '2026-05-07T23:59:59.999Z',
+    };
+
+    await listAppointmentAvailability(params);
+
+    expect(executeRequest).toHaveBeenCalledTimes(1);
+    const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
+    await requestFactory();
+    expect(mockedApi.get).toHaveBeenCalledWith('/appointments/availability', { params });
   });
 
   it('should list appointments with empty params by default', async () => {

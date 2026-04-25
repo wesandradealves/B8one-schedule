@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import '@/assets/scss/globals.scss';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
 import Providers from '@/app/providers';
 import { AppShell } from '@/app/style';
 import { env } from '@/utils/env';

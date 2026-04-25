@@ -128,4 +128,30 @@ describe('middleware', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('location')).toBeNull();
   });
+
+  it('should redirect exams list route for non-admin profiles', () => {
+    const token = buildToken({
+      sub: '2',
+      email: 'client@b8one.com',
+      profile: 'CLIENT',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    const response = middleware(createRequest('/app/exams', { token }));
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe('http://localhost:3001/app');
+  });
+
+  it('should allow exam details route for non-admin profiles', () => {
+    const token = buildToken({
+      sub: '2',
+      email: 'client@b8one.com',
+      profile: 'CLIENT',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    const response = middleware(createRequest('/app/exams/exam-id-1', { token }));
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
+  });
 });

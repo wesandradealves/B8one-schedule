@@ -51,6 +51,7 @@ describe('AppointmentsListSection', () => {
       setEditField: jest.fn(),
       saveEdit: jest.fn(),
       cancelAppointment: jest.fn(),
+      approveAppointment: jest.fn(),
       deleteAppointment: jest.fn(),
       isImportingCsv: false,
       isExportingCsv: false,
@@ -62,6 +63,9 @@ describe('AppointmentsListSection', () => {
     render(<AppointmentsListSection />);
 
     expect(screen.getByText('Hemograma')).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /usuário/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /observações/i })).not.toBeInTheDocument();
+    expect(screen.queryByText('Cliente Teste')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Importar CSV' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Exportar CSV' })).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Data'), {
@@ -119,6 +123,8 @@ describe('AppointmentsListSection', () => {
 
     render(<AppointmentsListSection />);
 
+    expect(screen.getByRole('columnheader', { name: /usuário/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /observações/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Importar CSV' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Exportar CSV' })).toBeInTheDocument();
 
@@ -137,6 +143,67 @@ describe('AppointmentsListSection', () => {
     expect(within(cancelDialog).getByText('Confirmar cancelamento')).toBeInTheDocument();
 
     fireEvent.click(within(cancelDialog).getByRole('button', { name: 'Confirmar' }));
+    expect(cancelAppointment).toHaveBeenCalledWith('appt-1');
+  });
+
+  it('should render approve and reject actions for pending appointments', () => {
+    const approveAppointment = jest.fn();
+    const cancelAppointment = jest.fn();
+
+    useAppointmentsListMock.mockReturnValue({
+      appointments: [
+        {
+          id: 'appt-1',
+          userId: 'user-1',
+          examId: 'exam-1',
+          examName: 'Hemograma',
+          scheduledAt: '2026-05-01T10:00:00.000Z',
+          notes: null,
+          status: 'PENDING',
+          changeStatus: 'NONE',
+        },
+      ],
+      page: 1,
+      total: 1,
+      totalPages: 1,
+      scheduledDateFilter: '',
+      sortBy: 'scheduledAt',
+      sortOrder: 'DESC',
+      isLoading: false,
+      isSaving: false,
+      canManageAppointments: true,
+      canCancelAppointments: true,
+      editingAppointmentId: null,
+      editForm: null,
+      setPage: jest.fn(),
+      updateScheduledDateFilter: jest.fn(),
+      updateSortBy: jest.fn(),
+      updateSortOrder: jest.fn(),
+      startEdit: jest.fn(),
+      cancelEdit: jest.fn(),
+      setEditField: jest.fn(),
+      saveEdit: jest.fn(),
+      cancelAppointment,
+      approveAppointment,
+      deleteAppointment: jest.fn(),
+      isImportingCsv: false,
+      isExportingCsv: false,
+      isCsvBusy: false,
+      importCsvFile: jest.fn(),
+      exportCsvFile: jest.fn(),
+    });
+
+    render(<AppointmentsListSection />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Aprovar' }));
+    const approveDialog = screen.getByRole('dialog');
+    fireEvent.click(within(approveDialog).getByRole('button', { name: 'Aprovar' }));
+    expect(approveAppointment).toHaveBeenCalledWith('appt-1');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rejeitar' }));
+    const rejectDialog = screen.getByRole('dialog');
+    expect(within(rejectDialog).getByText('Confirmar rejeição')).toBeInTheDocument();
+    fireEvent.click(within(rejectDialog).getByRole('button', { name: 'Confirmar' }));
     expect(cancelAppointment).toHaveBeenCalledWith('appt-1');
   });
 
@@ -175,6 +242,7 @@ describe('AppointmentsListSection', () => {
       setEditField: jest.fn(),
       saveEdit: jest.fn(),
       cancelAppointment: jest.fn(),
+      approveAppointment: jest.fn(),
       deleteAppointment: jest.fn(),
       isImportingCsv: false,
       isExportingCsv: false,
@@ -235,6 +303,7 @@ describe('AppointmentsListSection', () => {
       setEditField: jest.fn(),
       saveEdit,
       cancelAppointment: jest.fn(),
+      approveAppointment: jest.fn(),
       deleteAppointment: jest.fn(),
       isImportingCsv: false,
       isExportingCsv: false,
@@ -280,6 +349,7 @@ describe('AppointmentsListSection', () => {
       setEditField: jest.fn(),
       saveEdit: jest.fn(),
       cancelAppointment: jest.fn(),
+      approveAppointment: jest.fn(),
       deleteAppointment: jest.fn(),
       isImportingCsv: false,
       isExportingCsv: false,
@@ -340,6 +410,7 @@ describe('AppointmentsListSection', () => {
       setEditField: jest.fn(),
       saveEdit: jest.fn(),
       cancelAppointment,
+      approveAppointment: jest.fn(),
       deleteAppointment: jest.fn(),
       isImportingCsv: false,
       isExportingCsv: false,

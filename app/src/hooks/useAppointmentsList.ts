@@ -127,9 +127,14 @@ export const useAppointmentsList = () => {
       return;
     }
 
+    if (appointment.status === 'PENDING') {
+      publish('error', 'Aprovação pendente: use as ações de aprovar ou rejeitar.');
+      return;
+    }
+
     setEditingAppointmentId(appointment.id);
     setEditForm(createAppointmentEditFormState(appointment));
-  }, [canManageAppointments]);
+  }, [canManageAppointments, publish]);
 
   const cancelEdit = useCallback(() => {
     setEditingAppointmentId(null);
@@ -257,6 +262,33 @@ export const useAppointmentsList = () => {
     sortOrder,
   ]);
 
+  const approveAppointment = useCallback(async (appointmentId: string) => {
+    if (!canManageAppointments) {
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await updateAppointmentById(appointmentId, {
+        status: 'SCHEDULED',
+      });
+      publish('success', 'Agendamento aprovado com sucesso.');
+      await fetchAppointments(result.page, sortOrder, sortBy, scheduledDateFilter);
+    } catch (error) {
+      publish('error', getRequestErrorMessage(error));
+    } finally {
+      setIsSaving(false);
+    }
+  }, [
+    canManageAppointments,
+    fetchAppointments,
+    publish,
+    result.page,
+    scheduledDateFilter,
+    sortBy,
+    sortOrder,
+  ]);
+
   const appointments = useMemo(() => result.data, [result.data]);
   const refreshCurrentPage = useCallback(async () => {
     await fetchAppointments(result.page, sortOrder, sortBy, scheduledDateFilter);
@@ -299,6 +331,7 @@ export const useAppointmentsList = () => {
     setEditField,
     saveEdit,
     cancelAppointment,
+    approveAppointment,
     deleteAppointment,
     isImportingCsv,
     isExportingCsv,

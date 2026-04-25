@@ -1,6 +1,7 @@
 import {
   APP_ROUTES,
   isAppRoute,
+  isExamsListPath,
   isProtectedPath,
   isUsersPath,
   PROTECTED_ROUTE_PREFIXES,
@@ -34,6 +35,12 @@ describe('route utils', () => {
     expect(isUsersPath('/app/users')).toBe(true);
     expect(isUsersPath('/app/users/123')).toBe(true);
     expect(isUsersPath('/app/exams')).toBe(false);
+  });
+
+  it('should identify exams list route only for exact path', () => {
+    expect(isExamsListPath('/app/exams')).toBe(true);
+    expect(isExamsListPath('/app/exams/123')).toBe(false);
+    expect(isExamsListPath('/app')).toBe(false);
   });
 
   it('should validate app routes for safe post-login redirects', () => {
