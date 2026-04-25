@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  createElement,
   useCallback,
   useEffect,
   useMemo,
@@ -522,26 +523,28 @@ export const useExamSchedulingCalendar = ({
       month: {
         dateHeader: ({ date, label }: DateHeaderProps) => {
           if (!isValidCalendarDate(date)) {
-            return <div className="ep-month-date-header">{label}</div>;
+            return createElement('div', { className: 'ep-month-date-header' }, label);
           }
 
           const meta = dayAvailabilityMap.get(getDayAvailabilityKey(date));
           const toneClass = meta?.tone ?? 'unavailable';
 
-          return (
-            <div className="ep-month-date-header">
-              <button
-                className={`ep-month-date-button ep-month-date-button-${toneClass}`}
-                type="button"
-                onClick={(event) => {
+          return createElement(
+            'div',
+            { className: 'ep-month-date-header' },
+            createElement(
+              'button',
+              {
+                className: `ep-month-date-button ep-month-date-button-${toneClass}`,
+                type: 'button',
+                onClick: (event: { preventDefault: () => void; stopPropagation: () => void }) => {
                   event.preventDefault();
                   event.stopPropagation();
                   handleMonthDaySelection(date);
-                }}
-              >
-                {label}
-              </button>
-            </div>
+                },
+              },
+              label,
+            ),
           );
         },
       },
