@@ -28,6 +28,7 @@ function createSut(): Sut {
     deleteAppointment: jest.fn(),
     listByUserId: jest.fn(),
     listAll: jest.fn(),
+    listExamAvailability: jest.fn(),
     clearChangeRequest: jest.fn(),
   };
 

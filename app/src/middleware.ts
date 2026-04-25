@@ -1,5 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { APP_ROUTES, isProtectedPath, isUsersPath } from '@/utils/route';
+import {
+  APP_ROUTES,
+  isExamsListPath,
+  isProtectedPath,
+  isUsersPath,
+} from '@/utils/route';
 import { getAuthSessionFromToken } from '@/utils/auth-token';
 import { env } from '@/utils/env';
 
@@ -21,6 +26,10 @@ export function middleware(request: NextRequest) {
   }
 
   if (authSession && isUsersPath(pathname) && authSession.user.profile !== 'ADMIN') {
+    return NextResponse.redirect(new URL(APP_ROUTES.app, request.url));
+  }
+
+  if (authSession && isExamsListPath(pathname) && authSession.user.profile !== 'ADMIN') {
     return NextResponse.redirect(new URL(APP_ROUTES.app, request.url));
   }
 

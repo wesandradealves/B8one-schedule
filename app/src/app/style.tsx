@@ -16,6 +16,25 @@ export const GlobalStyle = createGlobalStyle`
     --color-text-secondary: ${({ theme }) => theme._colors.neutral[700]};
     --color-sidebar-hover: ${({ theme }) => theme._colors.primary[100]};
     --color-danger: ${({ theme }) => theme._colors.danger[500]};
+    --color-success: ${({ theme }) => theme._colors.success[500]};
+    --color-warning: ${({ theme }) => theme._colors.warning[500]};
+    --color-info: ${({ theme }) => theme._colors.info[500]};
+    --color-card-surface: color-mix(
+      in srgb,
+      ${({ theme }) => theme._colors.primary[50]} 40%,
+      ${({ theme }) => theme._colors.neutral[0]}
+    );
+    --color-card-border: color-mix(
+      in srgb,
+      ${({ theme }) => theme._colors.primary[100]} 80%,
+      ${({ theme }) => theme._colors.neutral[300]}
+    );
+    --color-card-icon-bg: color-mix(
+      in srgb,
+      ${({ theme }) => theme._colors.primary[100]} 60%,
+      ${({ theme }) => theme._colors.neutral[0]}
+    );
+    --color-card-icon-foreground: ${({ theme }) => theme._colors.primary[700]};
   }
 
   body {

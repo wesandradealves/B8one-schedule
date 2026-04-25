@@ -22,6 +22,7 @@ describe('useProtectedNavigation', () => {
     });
 
     const { result, rerender } = renderHook(() => useProtectedNavigation());
+    expect(result.current.some((item) => item.href === '/app/exams')).toBe(true);
     expect(result.current.some((item) => item.href === '/app/users')).toBe(true);
 
     useAuthMock.mockReturnValue({
@@ -33,6 +34,7 @@ describe('useProtectedNavigation', () => {
     });
 
     rerender();
+    expect(result.current.some((item) => item.href === '/app/exams')).toBe(false);
     expect(result.current.some((item) => item.href === '/app/users')).toBe(false);
   });
 });

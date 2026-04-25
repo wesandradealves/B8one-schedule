@@ -1,4 +1,4 @@
-export type AppointmentStatus = 'SCHEDULED' | 'CANCELLED';
+export type AppointmentStatus = 'PENDING' | 'SCHEDULED' | 'CANCELLED';
 export type AppointmentListSortBy = 'scheduledAt' | 'status';
 
 export type AppointmentChangeStatus = 'NONE' | 'PENDING';
@@ -18,4 +18,11 @@ export interface Appointment {
   requestedNotes?: string | null;
   userFullName?: string;
   userEmail?: string;
+}
+
+export interface AppointmentAvailabilitySlot {
+  id: string;
+  examId: string;
+  scheduledAt: string;
+  status: AppointmentStatus;
 }

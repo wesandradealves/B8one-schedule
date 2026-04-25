@@ -8,8 +8,11 @@ import { IAppointmentRepository } from '@/domain/interfaces/repositories/appoint
 import { IExamRepository } from '@/domain/interfaces/repositories/exam.repository';
 import { IMessagingProvider } from '@/domain/interfaces/providers/messaging.provider';
 import { Permission } from '@/domain/commons/enums/permission.enum';
+import { AppointmentStatus } from '@/domain/commons/enums/appointment-status.enum';
+import { UserProfile } from '@/domain/commons/enums/user-profile.enum';
 import {
   makeAppointmentEntity,
+  makeAuthenticatedUser,
   makeExamEntity,
 } from '../../../helpers/factories';
 
@@ -33,6 +36,7 @@ function createSut(): Sut {
     deleteAppointment: jest.fn(),
     listByUserId: jest.fn(),
     listAll: jest.fn(),
+    listExamAvailability: jest.fn(),
     clearChangeRequest: jest.fn(),
   };
 
@@ -64,7 +68,7 @@ describe('CreateAppointmentUseCase', () => {
 
     await expect(
       useCase.execute({
-        userId: 'user-id-1',
+        user: makeAuthenticatedUser({ id: 'user-id-1', profile: UserProfile.CLIENT }),
         examId: 'exam-id-1',
         scheduledAt: new Date(Date.now() - 60_000),
       }),
@@ -77,7 +81,7 @@ describe('CreateAppointmentUseCase', () => {
 
     await expect(
       useCase.execute({
-        userId: 'user-id-1',
+        user: makeAuthenticatedUser({ id: 'user-id-1', profile: UserProfile.CLIENT }),
         examId: 'exam-id-1',
         scheduledAt: new Date(Date.now() + 60_000),
       }),
@@ -93,7 +97,7 @@ describe('CreateAppointmentUseCase', () => {
 
     await expect(
       useCase.execute({
-        userId: 'user-id-1',
+        user: makeAuthenticatedUser({ id: 'user-id-1', profile: UserProfile.CLIENT }),
         examId: 'exam-id-1',
         scheduledAt: new Date(Date.now() + 60_000),
       }),
@@ -102,7 +106,7 @@ describe('CreateAppointmentUseCase', () => {
     );
   });
 
-  it('creates appointment and publishes event', async () => {
+  it('creates pending appointment for client and publishes event', async () => {
     const { useCase, examRepository, appointmentRepository, messagingProvider } = createSut();
 
     examRepository.findById.mockResolvedValue(makeExamEntity({ id: 'exam-id-1' }));
@@ -112,12 +116,13 @@ describe('CreateAppointmentUseCase', () => {
         id: 'appointment-id-1',
         userId: 'user-id-1',
         examId: 'exam-id-1',
+        status: AppointmentStatus.PENDING,
       }),
     );
 
     const scheduledAt = new Date(Date.now() + 120_000);
     const output = await useCase.execute({
-      userId: 'user-id-1',
+      user: makeAuthenticatedUser({ id: 'user-id-1', profile: UserProfile.CLIENT }),
       examId: 'exam-id-1',
       scheduledAt,
       notes: 'note',
@@ -128,15 +133,48 @@ describe('CreateAppointmentUseCase', () => {
       examId: 'exam-id-1',
       scheduledAt,
       notes: 'note',
+      status: AppointmentStatus.PENDING,
     });
 
     expect(messagingProvider.publish).toHaveBeenCalledWith('appointments.created', {
       appointmentId: 'appointment-id-1',
       userId: 'user-id-1',
       examId: 'exam-id-1',
+      status: AppointmentStatus.PENDING,
       permission: Permission.APPOINTMENTS_CREATE,
     });
 
     expect(output.id).toBe('appointment-id-1');
+  });
+
+  it('creates scheduled appointment for admin', async () => {
+    const { useCase, examRepository, appointmentRepository } = createSut();
+
+    examRepository.findById.mockResolvedValue(makeExamEntity({ id: 'exam-id-1' }));
+    appointmentRepository.findExamScheduleConflict.mockResolvedValue(null);
+    appointmentRepository.createAppointment.mockResolvedValue(
+      makeAppointmentEntity({
+        id: 'appointment-id-1',
+        userId: 'admin-id',
+        examId: 'exam-id-1',
+        status: AppointmentStatus.SCHEDULED,
+      }),
+    );
+
+    const scheduledAt = new Date(Date.now() + 120_000);
+    await useCase.execute({
+      user: makeAuthenticatedUser({ id: 'admin-id', profile: UserProfile.ADMIN }),
+      examId: 'exam-id-1',
+      scheduledAt,
+      notes: 'note',
+    });
+
+    expect(appointmentRepository.createAppointment).toHaveBeenCalledWith({
+      userId: 'admin-id',
+      examId: 'exam-id-1',
+      scheduledAt,
+      notes: 'note',
+      status: AppointmentStatus.SCHEDULED,
+    });
   });
 });

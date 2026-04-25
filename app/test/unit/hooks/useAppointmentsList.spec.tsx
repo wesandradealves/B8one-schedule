@@ -391,4 +391,44 @@ describe('useAppointmentsList', () => {
 
     expect(exportAppointmentsCsv).toHaveBeenCalledTimes(1);
   });
+
+  it('should approve pending appointment and refresh current page', async () => {
+    (updateAppointmentById as jest.Mock).mockResolvedValue({
+      id: 'appt-1',
+      status: 'SCHEDULED',
+    });
+    (listAppointments as jest.Mock).mockResolvedValue({
+      data: [
+        {
+          id: 'appt-1',
+          userId: 'user-1',
+          examId: 'exam-1',
+          examName: 'Hemograma',
+          scheduledAt: '2026-05-01T10:00:00.000Z',
+          notes: null,
+          status: 'PENDING',
+          changeStatus: 'NONE',
+        },
+      ],
+      page: 1,
+      limit: 8,
+      total: 1,
+      totalPages: 1,
+    });
+
+    const { result } = renderHook(() => useAppointmentsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.approveAppointment('appt-1');
+    });
+
+    expect(updateAppointmentById).toHaveBeenCalledWith('appt-1', {
+      status: 'SCHEDULED',
+    });
+    expect(publishMock).toHaveBeenCalledWith('success', 'Agendamento aprovado com sucesso.');
+  });
 });

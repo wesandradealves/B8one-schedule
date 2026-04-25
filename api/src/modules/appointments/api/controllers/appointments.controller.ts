@@ -5,6 +5,7 @@ import { SortOrder } from '@/domain/commons/enums/sort-order.enum';
 import { AppointmentListSortBy } from '@/domain/commons/enums/appointment-list-sort-by.enum';
 import { AuthenticatedUser } from '@/domain/types/authenticated-user.type';
 import { ICreateAppointmentUseCase } from '@/domain/interfaces/use-cases/appointments/create-appointment.use-case';
+import { IListAppointmentAvailabilityUseCase } from '@/domain/interfaces/use-cases/appointments/list-appointment-availability.use-case';
 import { IListAppointmentsUseCase } from '@/domain/interfaces/use-cases/appointments/list-appointments.use-case';
 import { ICancelAppointmentUseCase } from '@/domain/interfaces/use-cases/appointments/cancel-appointment.use-case';
 import { IRequestAppointmentChangeUseCase } from '@/domain/interfaces/use-cases/appointments/request-appointment-change.use-case';
@@ -44,6 +45,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { AppointmentResponseDto } from '../dto/appointment.response.dto';
+import { AppointmentAvailabilityResponseDto } from '../dto/appointment-availability.response.dto';
 import { CreateAppointmentRequestDto } from '../dto/create-appointment.request.dto';
 import { ListAppointmentsResponseDto } from '../dto/list-appointments.response.dto';
 import { RequestAppointmentChangeRequestDto } from '../dto/request-appointment-change.request.dto';
@@ -61,6 +63,10 @@ import {
 } from '@/modules/shared/utils/csv-import.schema';
 import { appointmentIdParamSchema } from '../schemas/appointment-id-param.schema';
 import { createAppointmentSchema } from '../schemas/create-appointment.schema';
+import {
+  ListAppointmentAvailabilityQuerySchemaType,
+  listAppointmentAvailabilityQuerySchema,
+} from '../schemas/list-appointment-availability-query.schema';
 import { requestAppointmentChangeSchema } from '../schemas/request-appointment-change.schema';
 import { updateAppointmentSchema } from '../schemas/update-appointment.schema';
 
@@ -73,6 +79,8 @@ export class AppointmentsController {
   constructor(
     @Inject(ICreateAppointmentUseCase)
     private readonly createAppointmentUseCase: ICreateAppointmentUseCase,
+    @Inject(IListAppointmentAvailabilityUseCase)
+    private readonly listAppointmentAvailabilityUseCase: IListAppointmentAvailabilityUseCase,
     @Inject(IListAppointmentsUseCase)
     private readonly listAppointmentsUseCase: IListAppointmentsUseCase,
     @Inject(IGetAppointmentByIdUseCase)
@@ -105,13 +113,50 @@ export class AppointmentsController {
     payload: { examId: string; scheduledAt: Date; notes?: string },
   ): Promise<AppointmentResponseDto> {
     const appointment = await this.createAppointmentUseCase.execute({
-      userId: user.id,
+      user,
       examId: payload.examId,
       scheduledAt: payload.scheduledAt,
       notes: payload.notes,
     });
 
     return this.toResponse(appointment);
+  }
+
+  @Get('availability')
+  @Permissions(Permission.APPOINTMENTS_READ_OWN)
+  @ApiOperation({ summary: 'List occupied slots for an exam within a time range' })
+  @ApiQuery({ name: 'examId', required: true, type: String, format: 'uuid' })
+  @ApiQuery({
+    name: 'startsAt',
+    required: true,
+    type: String,
+    format: 'date-time',
+    example: '2026-05-01T00:00:00.000Z',
+  })
+  @ApiQuery({
+    name: 'endsAt',
+    required: true,
+    type: String,
+    format: 'date-time',
+    example: '2026-05-07T23:59:59.999Z',
+  })
+  @ApiResponse({ status: 200, type: [AppointmentAvailabilityResponseDto] })
+  async listAvailability(
+    @Query(new ZodValidationPipe(listAppointmentAvailabilityQuerySchema))
+    query: ListAppointmentAvailabilityQuerySchemaType,
+  ): Promise<AppointmentAvailabilityResponseDto[]> {
+    const appointments = await this.listAppointmentAvailabilityUseCase.execute({
+      examId: query.examId,
+      startsAt: query.startsAt,
+      endsAt: query.endsAt,
+    });
+
+    return appointments.map((appointment) => ({
+      id: appointment.id,
+      examId: appointment.examId,
+      scheduledAt: appointment.scheduledAt,
+      status: appointment.status,
+    }));
   }
 
   @Post('import/csv')

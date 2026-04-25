@@ -12,7 +12,10 @@ import {
 } from 'typeorm';
 
 @Entity('appointments')
-@Index('UQ_appointments_exam_schedule', ['examId', 'scheduledAt'], { unique: true })
+@Index('UQ_appointments_exam_schedule_active', ['examId', 'scheduledAt'], {
+  unique: true,
+  where: `"status" IN ('PENDING', 'SCHEDULED')`,
+})
 export class AppointmentEntity extends BaseEntity {
   @Column({ name: 'user_id', type: 'uuid' })
   userId: string;
@@ -27,7 +30,7 @@ export class AppointmentEntity extends BaseEntity {
     type: 'enum',
     enum: AppointmentStatus,
     enumName: 'appointment_status_enum',
-    default: AppointmentStatus.SCHEDULED,
+    default: AppointmentStatus.PENDING,
   })
   status: AppointmentStatus;
 

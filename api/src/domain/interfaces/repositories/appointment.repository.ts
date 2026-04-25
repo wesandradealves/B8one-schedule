@@ -14,6 +14,7 @@ export interface CreateAppointmentInput {
   examId: string;
   scheduledAt: Date;
   notes?: string;
+  status: AppointmentStatus;
 }
 
 export interface UpdateAppointmentInput {
@@ -58,6 +59,11 @@ export interface IAppointmentRepository {
     query: AppointmentListQuery,
   ): Promise<PaginatedResult<AppointmentEntity>>;
   listAll(query: AppointmentListQuery): Promise<PaginatedResult<AppointmentEntity>>;
+  listExamAvailability(
+    examId: string,
+    startsAt: Date,
+    endsAt: Date,
+  ): Promise<AppointmentEntity[]>;
   clearChangeRequest(id: string, status: AppointmentChangeStatus): Promise<void>;
 }
 

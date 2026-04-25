@@ -16,6 +16,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+const ACTIVE_APPOINTMENT_STATUSES = [
+  AppointmentStatus.PENDING,
+  AppointmentStatus.SCHEDULED,
+] as const;
+
 @Injectable()
 export class AppointmentRepository implements IAppointmentRepository {
   constructor(
@@ -53,8 +58,8 @@ export class AppointmentRepository implements IAppointmentRepository {
       .andWhere('appointment.scheduledAt = :scheduledAt', {
         scheduledAt: scheduledAt.toISOString(),
       })
-      .andWhere('appointment.status = :status', {
-        status: AppointmentStatus.SCHEDULED,
+      .andWhere('appointment.status IN (:...statuses)', {
+        statuses: ACTIVE_APPOINTMENT_STATUSES,
       });
 
     if (excludeAppointmentId) {
@@ -76,7 +81,7 @@ export class AppointmentRepository implements IAppointmentRepository {
         examId: input.examId,
         scheduledAt: input.scheduledAt,
         notes: input.notes ?? null,
-        status: AppointmentStatus.SCHEDULED,
+        status: input.status,
         changeStatus: AppointmentChangeStatus.NONE,
       })
       .returning('id')
@@ -245,6 +250,26 @@ export class AppointmentRepository implements IAppointmentRepository {
       total,
       totalPages: total === 0 ? 0 : Math.ceil(total / query.limit),
     };
+  }
+
+  async listExamAvailability(
+    examId: string,
+    startsAt: Date,
+    endsAt: Date,
+  ): Promise<AppointmentEntity[]> {
+    return this.repository
+      .createQueryBuilder('appointment')
+      .where('appointment.examId = :examId', { examId })
+      .andWhere('appointment.scheduledAt BETWEEN :startsAt AND :endsAt', {
+        startsAt,
+        endsAt,
+      })
+      .andWhere('appointment.status IN (:...statuses)', {
+        statuses: ACTIVE_APPOINTMENT_STATUSES,
+      })
+      .orderBy('appointment.scheduledAt', 'ASC')
+      .addOrderBy('appointment.id', 'ASC')
+      .getMany();
   }
 
   async clearChangeRequest(id: string, status: AppointmentChangeStatus): Promise<void> {

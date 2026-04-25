@@ -1,4 +1,6 @@
 import { Permission } from '@/domain/commons/enums/permission.enum';
+import { AppointmentStatus } from '@/domain/commons/enums/appointment-status.enum';
+import { isAdmin } from '@/domain/commons/utils/profile-authorization.util';
 import { IAppointmentRepository } from '@/domain/interfaces/repositories/appointment.repository';
 import { IExamRepository } from '@/domain/interfaces/repositories/exam.repository';
 import {
@@ -44,12 +46,22 @@ export class CreateAppointmentUseCase implements ICreateAppointmentUseCase {
       throw new ConflictException('There is already an appointment for this exam/time slot');
     }
 
-    const appointment = await this.appointmentRepository.createAppointment(input);
+    const initialStatus = isAdmin(input.user)
+      ? AppointmentStatus.SCHEDULED
+      : AppointmentStatus.PENDING;
+    const appointment = await this.appointmentRepository.createAppointment({
+      userId: input.user.id,
+      examId: input.examId,
+      scheduledAt: input.scheduledAt,
+      notes: input.notes,
+      status: initialStatus,
+    });
 
     await this.messagingProvider.publish('appointments.created', {
       appointmentId: appointment.id,
       userId: appointment.userId,
       examId: appointment.examId,
+      status: appointment.status,
       permission: Permission.APPOINTMENTS_CREATE,
     });
 
