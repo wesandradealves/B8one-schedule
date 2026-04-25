@@ -675,6 +675,10 @@ Implementações aplicadas e validadas no fluxo de autenticação:
 
 ![Tela de listagem de exames](docs/screenshots/exams-list.png)
 
+#### Agendamento (calendário)
+
+![Tela de calendário de agendamento](docs/screenshots/exam-scheduling-calendar.png)
+
 #### Agendamentos (listagem)
 
 ![Tela de listagem de agendamentos](docs/screenshots/appointments-list.png)
