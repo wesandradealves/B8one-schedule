@@ -19,6 +19,7 @@ import type {
   AppointmentListSortBy,
   AppointmentStatus,
 } from '@/types/appointment';
+import { toAppointmentStatusLabel } from '@/utils/appointment';
 import { formatDateTime } from '@/utils/format';
 
 const Controls = styled.div.attrs({
@@ -48,14 +49,6 @@ const StatusBadge = styled.span.attrs<{ $status: AppointmentStatus }>(({ $status
         ? 'bg-emerald-100 text-emerald-700'
         : 'bg-slate-200 text-slate-700'),
 }))<{ $status: AppointmentStatus }>``;
-
-const toStatusLabel = (status: string): string => {
-  if (status === 'PENDING') {
-    return 'Pendente';
-  }
-
-  return status === 'CANCELLED' ? 'Cancelado' : 'Agendado';
-};
 
 const sortOptions: Array<{ value: SortOrder; label: string }> = [
   { value: 'DESC', label: 'Decrescente' },
@@ -307,7 +300,7 @@ export function AppointmentsListSection() {
         }
 
         const status = appointment.status as AppointmentStatus;
-        return <StatusBadge $status={status}>{toStatusLabel(appointment.status)}</StatusBadge>;
+        return <StatusBadge $status={status}>{toAppointmentStatusLabel(status)}</StatusBadge>;
       },
     };
 

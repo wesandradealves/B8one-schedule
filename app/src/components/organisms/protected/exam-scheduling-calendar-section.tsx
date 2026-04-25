@@ -1,102 +1,17 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import styled from 'styled-components';
-import {
-  Calendar,
-  dateFnsLocalizer,
-  type DateHeaderProps,
-  type SlotInfo,
-  type View,
-  Views,
-} from 'react-big-calendar';
-import {
-  endOfDay,
-  endOfMonth,
-  endOfWeek,
-  format,
-  getDay,
-  parse,
-  startOfDay,
-  startOfMonth,
-  startOfWeek,
-} from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { Calendar, Views } from 'react-big-calendar';
 import { ActionConfirmDialog } from '@/components/molecules/action-confirm-dialog';
 import { PageContainer, PageDescription, PageTitle } from '@/components/shared/page-container';
-import { createAppointment, listAppointmentAvailability } from '@/services/appointments.service';
-import { getExamById } from '@/services/exams.service';
-import type {
-  AppointmentAvailabilitySlot,
-  AppointmentStatus,
-} from '@/types/appointment';
-import type { Exam } from '@/types/exam';
-import { useFeedback } from '@/hooks/useFeedback';
-import { getRequestErrorMessage } from '@/utils/request';
-import { APP_ROUTES } from '@/utils/route';
+import { useExamSchedulingCalendar } from '@/hooks/useExamSchedulingCalendar';
+import type { AppointmentStatus } from '@/types/appointment';
+import {
+  EXAM_CALENDAR_LOCALIZER,
+  EXAM_CALENDAR_MESSAGES,
+  EXAM_CALENDAR_VIEWS,
+} from '@/utils/exam-scheduling-calendar';
 import { formatDateTime } from '@/utils/format';
-
-const locales = {
-  'pt-BR': ptBR,
-};
-
-const localizer = dateFnsLocalizer({
-  format,
-  parse,
-  startOfWeek: (date: Date) => startOfWeek(date, { weekStartsOn: 0 }),
-  getDay,
-  locales,
-});
-
-const calendarMessages = {
-  allDay: 'Dia inteiro',
-  previous: 'Anterior',
-  next: 'Próximo',
-  today: 'Hoje',
-  month: 'Mês',
-  week: 'Semana',
-  day: 'Dia',
-  agenda: 'Agenda',
-  date: 'Data',
-  time: 'Hora',
-  event: 'Evento',
-  noEventsInRange: 'Não há eventos neste período.',
-  showMore: (total: number) => `+${total} mais`,
-};
-
-const OPERATION_START_HOUR = 7;
-const OPERATION_END_HOUR = 19;
-
-const toMinutesOfDay = (date: Date): number => date.getHours() * 60 + date.getMinutes();
-
-const isValidDate = (date: unknown): date is Date => {
-  return date instanceof Date && !Number.isNaN(date.getTime());
-};
-
-const isWithinOperationWindow = (start: Date, durationMinutes: number): boolean => {
-  if (!isValidDate(start)) {
-    return false;
-  }
-
-  const end = new Date(start.getTime() + durationMinutes * 60_000);
-  if (!isValidDate(end)) {
-    return false;
-  }
-
-  const isSameDay =
-    start.getFullYear() === end.getFullYear() &&
-    start.getMonth() === end.getMonth() &&
-    start.getDate() === end.getDate();
-
-  if (!isSameDay) {
-    return false;
-  }
-
-  const startMinutes = toMinutesOfDay(start);
-  const endMinutes = toMinutesOfDay(end);
-  return startMinutes >= OPERATION_START_HOUR * 60 && endMinutes <= OPERATION_END_HOUR * 60;
-};
 
 const CalendarCard = styled.section.attrs({
   className: 'mt-6 rounded-2xl border bg-white p-4 shadow-sm',
@@ -346,458 +261,33 @@ const SkeletonCalendar = styled.div.attrs({
   border-color: var(--color-border);
 `;
 
-const toRange = (baseDate: Date, view: View): { startsAt: Date; endsAt: Date } => {
-  if (view === Views.DAY) {
-    return {
-      startsAt: startOfDay(baseDate),
-      endsAt: endOfDay(baseDate),
-    };
-  }
-
-  if (view === Views.MONTH) {
-    const monthStart = startOfMonth(baseDate);
-    const monthEnd = endOfMonth(baseDate);
-    return {
-      startsAt: startOfWeek(monthStart, { weekStartsOn: 0 }),
-      endsAt: endOfWeek(monthEnd, { weekStartsOn: 0 }),
-    };
-  }
-
-  return {
-    startsAt: startOfWeek(baseDate, { weekStartsOn: 0 }),
-    endsAt: endOfWeek(baseDate, { weekStartsOn: 0 }),
-  };
-};
-
-const toStatusLabel = (status: AppointmentStatus): string => {
-  if (status === 'PENDING') {
-    return 'Pendente';
-  }
-
-  if (status === 'CANCELLED') {
-    return 'Cancelado';
-  }
-
-  return 'Agendado';
-};
-
 interface ExamSchedulingCalendarSectionProps {
   examId: string;
 }
 
-interface SlotValidationOptions {
-  allowMonthSelection?: boolean;
-}
-
-type DayAvailabilityTone = 'available' | 'busy' | 'unavailable';
-
-interface DayAvailabilityMeta {
-  tone: DayAvailabilityTone;
-}
-
-const dayKey = (value: Date): string => format(value, 'yyyy-MM-dd');
-
 export function ExamSchedulingCalendarSection({ examId }: ExamSchedulingCalendarSectionProps) {
-  const router = useRouter();
-  const { publish } = useFeedback();
-  const [exam, setExam] = useState<Exam | null>(null);
-  const [availability, setAvailability] = useState<AppointmentAvailabilitySlot[]>([]);
-  const [isLoadingExam, setIsLoadingExam] = useState(true);
-  const [isLoadingAvailability, setIsLoadingAvailability] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedSlotStart, setSelectedSlotStart] = useState<Date | null>(null);
-  const [view, setView] = useState<View>(Views.WEEK);
-  const [viewDate, setViewDate] = useState<Date>(new Date());
-
-  const viewRange = useMemo(() => toRange(viewDate, view), [view, viewDate]);
-  const slotStep = useMemo(() => {
-    if (!exam?.durationMinutes || exam.durationMinutes <= 0) {
-      return 30;
-    }
-
-    return exam.durationMinutes;
-  }, [exam?.durationMinutes]);
-
-  const occupiedTimestampSet = useMemo(() => {
-    return new Set(
-      availability.map((appointment) => new Date(appointment.scheduledAt).getTime()),
-    );
-  }, [availability]);
-  const getSlotSelectionError = useCallback(
-    (slotStart: Date, options?: SlotValidationOptions): string | null => {
-      if (!isValidDate(slotStart)) {
-        return 'Não foi possível identificar o horário selecionado.';
-      }
-
-      if (view === Views.MONTH && !options?.allowMonthSelection) {
-        return 'Selecione um horário nos modos Dia ou Semana.';
-      }
-
-      if (slotStart.getTime() <= Date.now()) {
-        return 'Escolha um horário futuro para solicitar o agendamento.';
-      }
-
-      if (!isWithinOperationWindow(slotStart, slotStep)) {
-        return 'Selecione um horário entre 07:00 e 19:00.';
-      }
-
-      if (occupiedTimestampSet.has(slotStart.getTime())) {
-        return 'Este horário já está ocupado para o exame selecionado.';
-      }
-
-      return null;
-    },
-    [occupiedTimestampSet, slotStep, view],
-  );
-
-  const findFirstAvailableSlotInDay = useCallback(
-    (day: Date): Date | null => {
-      if (!isValidDate(day)) {
-        return null;
-      }
-
-      const cursor = new Date(day);
-      cursor.setHours(OPERATION_START_HOUR, 0, 0, 0);
-
-      while (isWithinOperationWindow(cursor, slotStep)) {
-        const validationError = getSlotSelectionError(cursor, {
-          allowMonthSelection: true,
-        });
-
-        if (!validationError) {
-          return new Date(cursor);
-        }
-
-        cursor.setMinutes(cursor.getMinutes() + slotStep);
-      }
-
-      return null;
-    },
-    [getSlotSelectionError, slotStep],
-  );
-
-  const availabilityEvents = useMemo(() => {
-    return availability.map((appointment) => {
-      const start = new Date(appointment.scheduledAt);
-      const end = new Date(start.getTime() + slotStep * 60_000);
-      return {
-        id: appointment.id,
-        title: toStatusLabel(appointment.status),
-        start,
-        end,
-        status: appointment.status,
-      };
-    });
-  }, [availability, slotStep]);
-
-  const dayAvailabilityMap = useMemo(() => {
-    const map = new Map<string, DayAvailabilityMeta>();
-    const cursor = new Date(viewRange.startsAt);
-    const rangeEnd = new Date(viewRange.endsAt);
-
-    while (cursor.getTime() <= rangeEnd.getTime()) {
-      const dayStart = new Date(cursor);
-      dayStart.setHours(OPERATION_START_HOUR, 0, 0, 0);
-
-      let hasAvailable = false;
-      let hasBusy = false;
-      let slotCursor = new Date(dayStart);
-
-      while (isWithinOperationWindow(slotCursor, slotStep)) {
-        if (slotCursor.getTime() > Date.now()) {
-          if (occupiedTimestampSet.has(slotCursor.getTime())) {
-            hasBusy = true;
-          } else {
-            hasAvailable = true;
-          }
-        }
-
-        slotCursor = new Date(slotCursor.getTime() + slotStep * 60_000);
-      }
-
-      if (hasAvailable) {
-        map.set(dayKey(cursor), {
-          tone: 'available',
-        });
-      } else if (hasBusy) {
-        map.set(dayKey(cursor), {
-          tone: 'busy',
-        });
-      } else {
-        map.set(dayKey(cursor), {
-          tone: 'unavailable',
-        });
-      }
-
-      cursor.setDate(cursor.getDate() + 1);
-    }
-
-    return map;
-  }, [occupiedTimestampSet, slotStep, viewRange.endsAt, viewRange.startsAt]);
-
-  const fetchAvailability = useCallback(async () => {
-    if (!exam) {
-      setAvailability([]);
-      setIsLoadingAvailability(false);
-      return;
-    }
-
-    setIsLoadingAvailability(true);
-    try {
-      const occupiedSlots = await listAppointmentAvailability({
-        examId: exam.id,
-        startsAt: viewRange.startsAt.toISOString(),
-        endsAt: viewRange.endsAt.toISOString(),
-      });
-      setAvailability(occupiedSlots);
-    } catch (error) {
-      publish('error', getRequestErrorMessage(error));
-      setAvailability([]);
-    } finally {
-      setIsLoadingAvailability(false);
-    }
-  }, [exam, publish, viewRange.endsAt, viewRange.startsAt]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchExam = async () => {
-      setIsLoadingExam(true);
-      try {
-        const examResponse = await getExamById(examId);
-        if (!isMounted) {
-          return;
-        }
-
-        setExam(examResponse);
-      } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
-        publish('error', getRequestErrorMessage(error));
-        setExam(null);
-      } finally {
-        if (isMounted) {
-          setIsLoadingExam(false);
-        }
-      }
-    };
-
-    void fetchExam();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [examId, publish]);
-
-  useEffect(() => {
-    void fetchAvailability();
-  }, [fetchAvailability]);
-
-  const handleMonthDaySelection = useCallback(
-    (day: Date) => {
-      if (isLoadingAvailability || isSubmitting || !isValidDate(day)) {
-        return;
-      }
-
-      const firstAvailableSlot = findFirstAvailableSlotInDay(day);
-      if (!firstAvailableSlot) {
-        publish('error', 'Não há horários disponíveis neste dia.');
-        return;
-      }
-
-      const validationError = getSlotSelectionError(firstAvailableSlot, {
-        allowMonthSelection: true,
-      });
-      if (validationError) {
-        publish('error', validationError);
-        return;
-      }
-
-      setSelectedSlotStart(firstAvailableSlot);
-    },
-    [
-      findFirstAvailableSlotInDay,
-      getSlotSelectionError,
-      isLoadingAvailability,
-      isSubmitting,
-      publish,
-    ],
-  );
-
-  const handleSelectSlot = useCallback(
-    (slotInfo: SlotInfo) => {
-      if (isLoadingAvailability || isSubmitting) {
-        return;
-      }
-
-      const start = slotInfo.start;
-      if (!isValidDate(start)) {
-        return;
-      }
-
-      if (view === Views.MONTH) {
-        handleMonthDaySelection(start);
-        return;
-      }
-
-      const validationError = getSlotSelectionError(start, {
-        allowMonthSelection: true,
-      });
-      if (validationError) {
-        publish('error', validationError);
-        return;
-      }
-
-      setSelectedSlotStart(start);
-    },
-    [
-      getSlotSelectionError,
-      handleMonthDaySelection,
-      isLoadingAvailability,
-      isSubmitting,
-      publish,
-      view,
-    ],
-  );
-
-  const handleConfirmSchedule = useCallback(async () => {
-    if (!selectedSlotStart || !exam) {
-      return;
-    }
-
-    const validationError = getSlotSelectionError(selectedSlotStart, {
-      allowMonthSelection: true,
-    });
-    if (validationError) {
-      publish('error', validationError);
-      setSelectedSlotStart(null);
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const created = await createAppointment({
-        examId: exam.id,
-        scheduledAt: selectedSlotStart.toISOString(),
-      });
-
-      publish(
-        'success',
-        created.status === 'PENDING'
-          ? 'Solicitação enviada e aguardando aprovação do administrador.'
-          : 'Agendamento criado com sucesso.',
-      );
-
-      setSelectedSlotStart(null);
-      router.push(APP_ROUTES.appointments);
-    } catch (error) {
-      publish('error', getRequestErrorMessage(error));
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [exam, getSlotSelectionError, publish, router, selectedSlotStart]);
-
-  const eventPropGetter = useCallback(
-    (event: { status: AppointmentStatus }) => {
-      if (event.status === 'PENDING') {
-        return {
-          style: {
-            background: 'rgba(245, 158, 11, 0.18)',
-            borderColor: 'rgba(245, 158, 11, 0.45)',
-            color: '#92400e',
-          },
-        };
-      }
-
-      return {
-        style: {
-          background: 'rgba(37, 99, 235, 0.16)',
-          borderColor: 'rgba(37, 99, 235, 0.45)',
-          color: '#1e40af',
-        },
-      };
-    },
-    [],
-  );
-
-  const slotPropGetter = useCallback(
-    (date: Date) => {
-      if (!isValidDate(date)) {
-        return {};
-      }
-
-      const isPast = date.getTime() <= Date.now();
-      const isBusy = occupiedTimestampSet.has(date.getTime());
-      const isOutOfWindow = !isWithinOperationWindow(date, slotStep);
-      const isSelected =
-        selectedSlotStart !== null && selectedSlotStart.getTime() === date.getTime();
-
-      if (!isPast && !isBusy && !isOutOfWindow) {
-        return {
-          className: isSelected ? 'ep-slot-available ep-slot-selected' : 'ep-slot-available',
-        };
-      }
-
-      return {
-        className: isBusy ? 'ep-slot-busy' : 'ep-slot-unavailable',
-      };
-    },
-    [occupiedTimestampSet, selectedSlotStart, slotStep],
-  );
-
-  const dayPropGetter = useCallback(
-    (date: Date) => {
-      if (view !== Views.MONTH || !isValidDate(date)) {
-        return {};
-      }
-
-      const meta = dayAvailabilityMap.get(dayKey(date));
-      if (!meta) {
-        return {};
-      }
-
-      if (meta.tone === 'available') {
-        return { className: 'ep-month-day-available' };
-      }
-
-      if (meta.tone === 'busy') {
-        return { className: 'ep-month-day-busy' };
-      }
-
-      return { className: 'ep-month-day-unavailable' };
-    },
-    [dayAvailabilityMap, view],
-  );
-
-  const calendarComponents = useMemo(
-    () => ({
-      month: {
-        dateHeader: ({ date, label }: DateHeaderProps) => {
-          const meta = dayAvailabilityMap.get(dayKey(date));
-          const toneClass = meta?.tone ?? 'unavailable';
-
-          return (
-            <div className="ep-month-date-header">
-              <button
-                className={`ep-month-date-button ep-month-date-button-${toneClass}`}
-                type="button"
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  handleMonthDaySelection(date);
-                }}
-              >
-                {label}
-              </button>
-            </div>
-          );
-        },
-      },
-    }),
-    [dayAvailabilityMap, handleMonthDaySelection],
-  );
+  const {
+    exam,
+    isLoadingExam,
+    isLoadingAvailability,
+    isSubmitting,
+    selectedSlotStart,
+    slotStep,
+    view,
+    viewDate,
+    availabilityEvents,
+    calendarComponents,
+    handleNavigate,
+    handleView,
+    handleSelecting,
+    handleSelectSlot,
+    handleSelectEvent,
+    handleConfirmSchedule,
+    eventPropGetter,
+    slotPropGetter,
+    dayPropGetter,
+    setSelectedSlotStart,
+  } = useExamSchedulingCalendar({ examId });
 
   if (isLoadingExam) {
     return (
@@ -828,8 +318,8 @@ export function ExamSchedulingCalendarSection({ examId }: ExamSchedulingCalendar
     <PageContainer>
       <PageTitle>Agenda de {exam.name}</PageTitle>
       <PageDescription>
-        Selecione um horário livre para solicitar seu agendamento. Pedidos de cliente
-        entram com status pendente de aprovação.
+        Selecione um horário livre para solicitar seu agendamento. Pedidos de cliente entram
+        com status pendente de aprovação.
       </PageDescription>
 
       <CalendarCard>
@@ -860,34 +350,22 @@ export function ExamSchedulingCalendarSection({ examId }: ExamSchedulingCalendar
             endAccessor="end"
             eventPropGetter={eventPropGetter}
             events={availabilityEvents}
-            localizer={localizer}
+            localizer={EXAM_CALENDAR_LOCALIZER}
             max={new Date(1970, 1, 1, 19, 0, 0)}
             min={new Date(1970, 1, 1, 7, 0, 0)}
-            messages={calendarMessages}
+            messages={EXAM_CALENDAR_MESSAGES}
             selectable="ignoreEvents"
             slotPropGetter={slotPropGetter}
             startAccessor="start"
             step={slotStep}
             timeslots={1}
             view={view}
-            views={[Views.DAY, Views.WEEK, Views.MONTH]}
-            onNavigate={(nextDate: Date) => {
-              setViewDate(nextDate);
-            }}
-            onSelectEvent={(event: { start: Date; status: AppointmentStatus }) => {
-              if (!isValidDate(event.start)) {
-                return;
-              }
-
-              publish(
-                'error',
-                `${toStatusLabel(event.status)} em ${formatDateTime(event.start.toISOString())}. Escolha um horário disponível.`,
-              );
-            }}
+            views={EXAM_CALENDAR_VIEWS}
+            onNavigate={handleNavigate}
+            onSelectEvent={handleSelectEvent}
             onSelectSlot={handleSelectSlot}
-            onView={(nextView: View) => {
-              setView(nextView);
-            }}
+            onSelecting={handleSelecting}
+            onView={handleView}
           />
         </CalendarFrame>
       </CalendarCard>

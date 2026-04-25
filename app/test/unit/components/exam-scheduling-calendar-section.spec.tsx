@@ -26,6 +26,7 @@ type CalendarMockProps = {
     month?: string;
   };
   onSelectSlot: (slot: { start: Date; end: Date }) => void;
+  onSelecting?: (slot: { start: Date; end: Date }) => boolean;
   onView?: (view: 'day' | 'week' | 'month') => void;
   selectable?: 'ignoreEvents' | boolean;
   views?: Array<'day' | 'week' | 'month'>;
@@ -114,6 +115,7 @@ describe('ExamSchedulingCalendarSection', () => {
 
     expect(latestCalendarProps?.selectable).toBe('ignoreEvents');
     expect(typeof latestCalendarProps?.onSelectSlot).toBe('function');
+    expect(typeof latestCalendarProps?.onSelecting).toBe('function');
     expect(latestCalendarProps?.views).toEqual(['day', 'week', 'month']);
     expect(latestCalendarProps?.messages?.today).toBe('Hoje');
     expect(latestCalendarProps?.messages?.previous).toBe('Anterior');
