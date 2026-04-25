@@ -182,4 +182,26 @@ describe('ImportAppointmentsCsvUseCase', () => {
       skippedRows: 1,
     });
   });
+
+  it('defaults status to SCHEDULED when CSV row omits status', async () => {
+    const { useCase, appointmentRepository, examRepository, userRepository } = createSut();
+
+    userRepository.findById.mockResolvedValue(makeUserEntity({ id: 'user-id-1' }));
+    examRepository.findAnyById.mockResolvedValue(makeExamEntity({ id: 'exam-id-1' }));
+    appointmentRepository.findExamScheduleConflict.mockResolvedValue(null);
+    appointmentRepository.createAppointment.mockResolvedValue(
+      makeAppointmentEntity({ id: 'created-appointment-id', userId: 'user-id-1' }),
+    );
+
+    await useCase.execute({
+      user: makeAuthenticatedUser({ profile: UserProfile.ADMIN }),
+      csvContent: 'userId,examId,scheduledAt,notes\nuser-id-1,exam-id-1,2099-01-01T10:00:00.000Z,Imported',
+    });
+
+    expect(appointmentRepository.createAppointment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: AppointmentStatus.SCHEDULED,
+      }),
+    );
+  });
 });

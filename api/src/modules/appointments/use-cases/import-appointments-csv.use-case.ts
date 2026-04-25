@@ -180,7 +180,7 @@ export class ImportAppointmentsCsvUseCase implements IImportAppointmentsCsvUseCa
 
   private parseStatus(rawValue: string | null, rowNumber: number): AppointmentStatus {
     if (!rawValue) {
-      return AppointmentStatus.PENDING;
+      return AppointmentStatus.SCHEDULED;
     }
 
     const normalized = rawValue.trim().toUpperCase() as AppointmentStatus;
