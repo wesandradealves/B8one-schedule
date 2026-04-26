@@ -7,34 +7,37 @@ jest.mock('@/hooks/useCreateExam', () => ({
   useCreateExam: () => useCreateExamMock(),
 }));
 
+const createMockValue = (overrides: Record<string, unknown> = {}) => ({
+  form: {
+    name: '',
+    description: '',
+    durationMinutes: '20',
+    priceCents: '',
+    availableWeekdays: [1, 2, 3, 4, 5],
+    availableStartTime: '07:00',
+    availableEndTime: '19:00',
+    availableFromDate: '',
+    availableToDate: '',
+  },
+  fieldErrors: {},
+  message: null,
+  isSubmitting: false,
+  canManageExams: true,
+  canSubmit: true,
+  setField: jest.fn(),
+  toggleWeekday: jest.fn(),
+  submit: jest.fn(),
+  cancel: jest.fn(),
+  ...overrides,
+});
+
 describe('ExamCreateForm', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('renders restricted view for non-admin users', () => {
-    useCreateExamMock.mockReturnValue({
-      form: {
-        name: '',
-        description: '',
-        durationMinutes: '20',
-        priceCents: '',
-        availableWeekdays: [1, 2, 3, 4, 5],
-        availableStartTime: '07:00',
-        availableEndTime: '19:00',
-        availableFromDate: '',
-        availableToDate: '',
-      },
-      fieldErrors: {},
-      message: null,
-      isSubmitting: false,
-      canManageExams: false,
-      canSubmit: false,
-      setField: jest.fn(),
-      toggleWeekday: jest.fn(),
-      submit: jest.fn(),
-      cancel: jest.fn(),
-    });
+    useCreateExamMock.mockReturnValue(createMockValue({ canManageExams: false, canSubmit: false }));
 
     render(<ExamCreateForm />);
 
@@ -46,8 +49,9 @@ describe('ExamCreateForm', () => {
     const submit = jest.fn();
     const cancel = jest.fn();
     const setField = jest.fn();
+    const toggleWeekday = jest.fn();
 
-    useCreateExamMock.mockReturnValue({
+    useCreateExamMock.mockReturnValue(createMockValue({
       form: {
         name: 'Hemograma',
         description: 'Exame laboratorial',
@@ -59,16 +63,11 @@ describe('ExamCreateForm', () => {
         availableFromDate: '',
         availableToDate: '',
       },
-      fieldErrors: {},
-      message: null,
-      isSubmitting: false,
-      canManageExams: true,
-      canSubmit: true,
       setField,
-      toggleWeekday: jest.fn(),
+      toggleWeekday,
       submit,
       cancel,
-    });
+    }));
 
     render(<ExamCreateForm />);
 
@@ -76,6 +75,44 @@ describe('ExamCreateForm', () => {
       target: { value: 'Vitamina D' },
     });
     expect(setField).toHaveBeenCalledWith('name', 'Vitamina D');
+
+    fireEvent.change(screen.getByLabelText('Descrição'), {
+      target: { value: 'Descrição teste' },
+    });
+    expect(setField).toHaveBeenCalledWith('description', 'Descrição teste');
+
+    fireEvent.change(screen.getByLabelText('Duração (minutos)'), {
+      target: { value: '25' },
+    });
+    expect(setField).toHaveBeenCalledWith('durationMinutes', '25');
+
+    fireEvent.change(screen.getByLabelText('Valor (centavos)'), {
+      target: { value: '3000' },
+    });
+    expect(setField).toHaveBeenCalledWith('priceCents', '3000');
+
+    fireEvent.change(screen.getByLabelText('Horário inicial'), {
+      target: { value: '08:00' },
+    });
+    expect(setField).toHaveBeenCalledWith('availableStartTime', '08:00');
+
+    fireEvent.change(screen.getByLabelText('Horário final'), {
+      target: { value: '18:00' },
+    });
+    expect(setField).toHaveBeenCalledWith('availableEndTime', '18:00');
+
+    fireEvent.change(screen.getByLabelText('Disponível a partir de'), {
+      target: { value: '2026-04-25' },
+    });
+    expect(setField).toHaveBeenCalledWith('availableFromDate', '2026-04-25');
+
+    fireEvent.change(screen.getByLabelText('Disponível até'), {
+      target: { value: '2026-05-25' },
+    });
+    expect(setField).toHaveBeenCalledWith('availableToDate', '2026-05-25');
+
+    fireEvent.click(screen.getByLabelText('Sáb'));
+    expect(toggleWeekday).toHaveBeenCalledWith(6, true);
 
     fireEvent.click(screen.getByRole('button', { name: 'Criar exame' }));
     expect(submit).toHaveBeenCalledTimes(1);
@@ -85,7 +122,7 @@ describe('ExamCreateForm', () => {
   });
 
   it('renders inline message and errors', () => {
-    useCreateExamMock.mockReturnValue({
+    useCreateExamMock.mockReturnValue(createMockValue({
       form: {
         name: '',
         description: '',
@@ -106,14 +143,8 @@ describe('ExamCreateForm', () => {
         level: 'error',
         text: 'Falha ao criar exame',
       },
-      isSubmitting: false,
-      canManageExams: true,
       canSubmit: false,
-      setField: jest.fn(),
-      toggleWeekday: jest.fn(),
-      submit: jest.fn(),
-      cancel: jest.fn(),
-    });
+    }));
 
     render(<ExamCreateForm />);
 
@@ -121,5 +152,19 @@ describe('ExamCreateForm', () => {
     expect(screen.getByText('Erro de nome')).toBeInTheDocument();
     expect(screen.getByText('Erro de duração')).toBeInTheDocument();
     expect(screen.getByText('Erro de disponibilidade')).toBeInTheDocument();
+  });
+
+  it('disables actions while submitting', () => {
+    useCreateExamMock.mockReturnValue(
+      createMockValue({
+        isSubmitting: true,
+        canSubmit: false,
+      }),
+    );
+
+    render(<ExamCreateForm />);
+
+    expect(screen.getByRole('button', { name: 'Criar exame' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled();
   });
 });
