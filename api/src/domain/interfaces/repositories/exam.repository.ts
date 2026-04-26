@@ -11,6 +11,11 @@ export interface CreateExamInput {
   description?: string | null;
   durationMinutes: number;
   priceCents: number;
+  availableWeekdays?: number[];
+  availableStartTime?: string;
+  availableEndTime?: string;
+  availableFromDate?: string | null;
+  availableToDate?: string | null;
 }
 
 export interface UpdateExamInput {
@@ -18,6 +23,11 @@ export interface UpdateExamInput {
   description?: string | null;
   durationMinutes?: number;
   priceCents?: number;
+  availableWeekdays?: number[];
+  availableStartTime?: string;
+  availableEndTime?: string;
+  availableFromDate?: string | null;
+  availableToDate?: string | null;
   isActive?: boolean;
 }
 

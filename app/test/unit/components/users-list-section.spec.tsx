@@ -44,6 +44,7 @@ describe('UsersListSection', () => {
     render(<UsersListSection />);
 
     expect(screen.getByText('Acesso restrito ao perfil administrador.')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Adicionar usuário' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Importar CSV' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Exportar CSV' })).not.toBeInTheDocument();
   });
@@ -97,6 +98,10 @@ describe('UsersListSection', () => {
 
     render(<UsersListSection />);
 
+    expect(screen.getByRole('link', { name: 'Adicionar usuário' })).toHaveAttribute(
+      'href',
+      '/app/users/new',
+    );
     expect(screen.getByRole('button', { name: 'Importar CSV' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Exportar CSV' })).toBeInTheDocument();
 

@@ -20,25 +20,23 @@ describe('ProtectedSidebar', () => {
 
   it('should show users navigation item only for admin profile', () => {
     useProtectedNavigationMock.mockReturnValue([
-      { label: 'Início', href: '/app', icon: 'home' },
+      { label: 'Usuários', href: '/app/users', icon: 'users' },
       { label: 'Exames', href: '/app/exams', icon: 'exams' },
       { label: 'Agendamentos', href: '/app/appointments', icon: 'appointments' },
-      { label: 'Usuários', href: '/app/users', icon: 'users' },
     ]);
 
     const { rerender } = render(<ProtectedSidebar />);
 
-    expect(screen.getByRole('link', { name: 'Início' })).toHaveAttribute('href', '/app');
+    expect(screen.queryByRole('link', { name: 'Início' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Usuários' })).toHaveAttribute('href', '/app/users');
     expect(screen.getByRole('link', { name: 'Exames' })).toHaveAttribute('href', '/app/exams');
     expect(screen.getByRole('link', { name: 'Agendamentos' })).toHaveAttribute(
       'href',
       '/app/appointments',
     );
-    expect(screen.getByRole('link', { name: 'Usuários' })).toHaveAttribute('href', '/app/users');
 
     useProtectedNavigationMock.mockReturnValue([
       { label: 'Início', href: '/app', icon: 'home' },
-      { label: 'Exames', href: '/app/exams', icon: 'exams' },
       { label: 'Agendamentos', href: '/app/appointments', icon: 'appointments' },
     ]);
 
@@ -49,14 +47,12 @@ describe('ProtectedSidebar', () => {
   it('should activate only the matching route item for nested paths', () => {
     pathnameMock.mockReturnValue('/app/exams');
     useProtectedNavigationMock.mockReturnValue([
-      { label: 'Início', href: '/app', icon: 'home' },
       { label: 'Exames', href: '/app/exams', icon: 'exams' },
       { label: 'Agendamentos', href: '/app/appointments', icon: 'appointments' },
     ]);
 
     render(<ProtectedSidebar />);
 
-    expect(screen.getByRole('link', { name: 'Início' })).toHaveAttribute('data-active', 'false');
     expect(screen.getByRole('link', { name: 'Exames' })).toHaveAttribute('data-active', 'true');
     expect(screen.getByRole('link', { name: 'Agendamentos' })).toHaveAttribute(
       'data-active',
@@ -80,13 +76,13 @@ describe('ProtectedSidebar', () => {
   it('should keep navigation links inactive when pathname is unavailable', () => {
     pathnameMock.mockReturnValue(null);
     useProtectedNavigationMock.mockReturnValue([
-      { label: 'Início', href: '/app', icon: 'home' },
+      { label: 'Usuários', href: '/app/users', icon: 'users' },
       { label: 'Exames', href: '/app/exams', icon: 'exams' },
     ]);
 
     render(<ProtectedSidebar />);
 
-    expect(screen.getByRole('link', { name: 'Início' })).toHaveAttribute('data-active', 'false');
+    expect(screen.getByRole('link', { name: 'Usuários' })).toHaveAttribute('data-active', 'false');
     expect(screen.getByRole('link', { name: 'Exames' })).toHaveAttribute('data-active', 'false');
   });
 });

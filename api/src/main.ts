@@ -16,13 +16,14 @@ async function bootstrap() {
 
   app.enableCors({ origin: '*' });
   app.useGlobalFilters(new HttpExceptionFilter());
-  setupSwagger(app);
 
   if (apiPrefix.length > 0) {
     app.setGlobalPrefix(apiPrefix, {
       exclude: ['health', 'metrics'],
     });
   }
+
+  setupSwagger(app);
 
   await app.listen(port);
 

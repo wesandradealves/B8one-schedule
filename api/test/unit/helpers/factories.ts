@@ -42,6 +42,11 @@ export function makeExamEntity(overrides: Partial<ExamEntity> = {}): ExamEntity 
     description: overrides.description ?? 'Exam Description',
     durationMinutes: overrides.durationMinutes ?? 30,
     priceCents: overrides.priceCents ?? 10000,
+    availableWeekdays: overrides.availableWeekdays ?? [0, 1, 2, 3, 4, 5, 6],
+    availableStartTime: overrides.availableStartTime ?? '00:00',
+    availableEndTime: overrides.availableEndTime ?? '23:59',
+    availableFromDate: overrides.availableFromDate ?? null,
+    availableToDate: overrides.availableToDate ?? null,
     isActive: overrides.isActive ?? true,
     appointments: overrides.appointments ?? [],
   } as ExamEntity;
@@ -50,7 +55,9 @@ export function makeExamEntity(overrides: Partial<ExamEntity> = {}): ExamEntity 
 export function makeAppointmentEntity(
   overrides: Partial<AppointmentEntity> = {},
 ): AppointmentEntity {
-  const scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const scheduledAt = new Date();
+  scheduledAt.setDate(scheduledAt.getDate() + 1);
+  scheduledAt.setHours(10, 0, 0, 0);
 
   return {
     id: overrides.id ?? 'appointment-id-1',

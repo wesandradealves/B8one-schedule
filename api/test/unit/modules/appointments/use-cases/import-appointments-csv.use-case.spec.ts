@@ -204,4 +204,36 @@ describe('ImportAppointmentsCsvUseCase', () => {
       }),
     );
   });
+
+  it('skips rows outside exam availability for active statuses', async () => {
+    const { useCase, appointmentRepository, examRepository, userRepository } = createSut();
+
+    userRepository.findById.mockResolvedValue(makeUserEntity({ id: 'user-id-1' }));
+    examRepository.findAnyById.mockResolvedValue(
+      makeExamEntity({
+        id: 'exam-id-1',
+        availableWeekdays: [0, 1, 2, 3, 4, 5, 6],
+        availableStartTime: '09:00',
+        availableEndTime: '10:00',
+      }),
+    );
+    appointmentRepository.findExamScheduleConflict.mockResolvedValue(null);
+
+    const output = await useCase.execute({
+      user: makeAuthenticatedUser({ profile: UserProfile.ADMIN }),
+      csvContent:
+        'userId,examId,scheduledAt,status\n' +
+        'user-id-1,exam-id-1,2099-01-06T11:00:00.000Z,SCHEDULED',
+    });
+
+    expect(output.createdRows).toBe(0);
+    expect(output.skippedRows).toBe(1);
+    expect(output.errors).toEqual([
+      expect.objectContaining({
+        row: 2,
+        message: 'Row 2: "scheduledAt" is outside exam availability',
+      }),
+    ]);
+    expect(appointmentRepository.createAppointment).not.toHaveBeenCalled();
+  });
 });

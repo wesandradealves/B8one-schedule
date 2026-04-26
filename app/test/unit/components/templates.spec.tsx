@@ -13,7 +13,7 @@ jest.mock('@/hooks/useLogout', () => ({
 }));
 
 jest.mock('next/navigation', () => ({
-  usePathname: () => '/app',
+  usePathname: () => '/app/users',
 }));
 
 describe('route templates', () => {
@@ -53,7 +53,8 @@ describe('route templates', () => {
     expect(
       screen.getByRole('button', { name: /Iniciais do usuário Admin/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Início' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Início' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Usuários' })).toBeInTheDocument();
     expect(screen.getByText('Feito com')).toBeInTheDocument();
   });
 });

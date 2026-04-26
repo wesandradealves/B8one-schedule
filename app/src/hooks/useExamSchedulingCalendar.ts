@@ -22,13 +22,18 @@ import type {
   AppointmentStatus,
 } from '@/types/appointment';
 import type { Exam } from '@/types/exam';
+import type { ExamAvailabilityConfig } from '@/utils/exam-availability';
+import {
+  isDateInsideExamAvailabilityDay,
+  isWithinExamAvailability,
+  normalizeExamAvailability,
+  toTimeMinutes,
+} from '@/utils/exam-availability';
 import { formatDateTime } from '@/utils/format';
 import { toAppointmentStatusLabel } from '@/utils/appointment';
 import {
   getDayAvailabilityKey,
   isValidCalendarDate,
-  isWithinOperationWindow,
-  OPERATION_START_HOUR,
   toViewRange,
 } from '@/utils/exam-scheduling-calendar';
 import { getRequestErrorMessage } from '@/utils/request';
@@ -58,6 +63,7 @@ interface AvailabilityEvent {
 
 export interface UseExamSchedulingCalendarOutput {
   exam: Exam | null;
+  examAvailability: ExamAvailabilityConfig;
   isLoadingExam: boolean;
   isLoadingAvailability: boolean;
   isSubmitting: boolean;
@@ -108,6 +114,19 @@ export const useExamSchedulingCalendar = ({
     return exam.durationMinutes;
   }, [exam?.durationMinutes]);
 
+  const examAvailability = useMemo(
+    () => normalizeExamAvailability(exam),
+    [exam],
+  );
+
+  const dayStartMinutes = useMemo(() => {
+    return toTimeMinutes(examAvailability.availableStartTime) ?? 0;
+  }, [examAvailability.availableStartTime]);
+
+  const dayEndMinutes = useMemo(() => {
+    return toTimeMinutes(examAvailability.availableEndTime) ?? 24 * 60;
+  }, [examAvailability.availableEndTime]);
+
   const occupiedTimestampSet = useMemo(() => {
     return new Set(
       availability
@@ -130,8 +149,8 @@ export const useExamSchedulingCalendar = ({
         return 'Escolha um horário futuro para solicitar o agendamento.';
       }
 
-      if (!isWithinOperationWindow(slotStart, slotStep)) {
-        return 'Selecione um horário entre 07:00 e 19:00.';
+      if (!isWithinExamAvailability(slotStart, slotStep, examAvailability)) {
+        return 'Selecione um horário dentro da disponibilidade do exame.';
       }
 
       if (occupiedTimestampSet.has(slotStart.getTime())) {
@@ -140,19 +159,24 @@ export const useExamSchedulingCalendar = ({
 
       return null;
     },
-    [occupiedTimestampSet, slotStep, view],
+    [examAvailability, occupiedTimestampSet, slotStep, view],
   );
 
   const findFirstAvailableSlotInDay = useCallback(
     (day: Date): Date | null => {
-      if (!isValidCalendarDate(day)) {
+      if (
+        !isValidCalendarDate(day) ||
+        !isDateInsideExamAvailabilityDay(day, examAvailability)
+      ) {
         return null;
       }
 
       const cursor = new Date(day);
-      cursor.setHours(OPERATION_START_HOUR, 0, 0, 0);
+      cursor.setHours(Math.floor(dayStartMinutes / 60), dayStartMinutes % 60, 0, 0);
+      const dayEnd = new Date(day);
+      dayEnd.setHours(Math.floor(dayEndMinutes / 60), dayEndMinutes % 60, 0, 0);
 
-      while (isWithinOperationWindow(cursor, slotStep)) {
+      while (cursor.getTime() < dayEnd.getTime()) {
         const validationError = getSlotSelectionError(cursor, {
           allowMonthSelection: true,
         });
@@ -166,7 +190,7 @@ export const useExamSchedulingCalendar = ({
 
       return null;
     },
-    [getSlotSelectionError, slotStep],
+    [dayEndMinutes, dayStartMinutes, examAvailability, getSlotSelectionError, slotStep],
   );
 
   const resolveSlotStartByView = useCallback(
@@ -211,23 +235,43 @@ export const useExamSchedulingCalendar = ({
     const rangeEnd = new Date(viewRange.endsAt);
 
     while (cursor.getTime() <= rangeEnd.getTime()) {
-      const dayStart = new Date(cursor);
-      dayStart.setHours(OPERATION_START_HOUR, 0, 0, 0);
-
       let hasAvailable = false;
       let hasBusy = false;
-      let slotCursor = new Date(dayStart);
 
-      while (isWithinOperationWindow(slotCursor, slotStep)) {
-        if (slotCursor.getTime() > Date.now()) {
-          if (occupiedTimestampSet.has(slotCursor.getTime())) {
-            hasBusy = true;
-          } else {
-            hasAvailable = true;
+      if (isDateInsideExamAvailabilityDay(cursor, examAvailability)) {
+        const dayStart = new Date(cursor);
+        dayStart.setHours(
+          Math.floor(dayStartMinutes / 60),
+          dayStartMinutes % 60,
+          0,
+          0,
+        );
+        const dayEnd = new Date(cursor);
+        dayEnd.setHours(
+          Math.floor(dayEndMinutes / 60),
+          dayEndMinutes % 60,
+          0,
+          0,
+        );
+        let slotCursor = new Date(dayStart);
+
+        while (slotCursor.getTime() < dayEnd.getTime()) {
+          const isSchedulable = isWithinExamAvailability(
+            slotCursor,
+            slotStep,
+            examAvailability,
+          );
+
+          if (slotCursor.getTime() > Date.now() && isSchedulable) {
+            if (occupiedTimestampSet.has(slotCursor.getTime())) {
+              hasBusy = true;
+            } else {
+              hasAvailable = true;
+            }
           }
-        }
 
-        slotCursor = new Date(slotCursor.getTime() + slotStep * 60_000);
+          slotCursor = new Date(slotCursor.getTime() + slotStep * 60_000);
+        }
       }
 
       if (hasAvailable) {
@@ -248,7 +292,15 @@ export const useExamSchedulingCalendar = ({
     }
 
     return map;
-  }, [occupiedTimestampSet, slotStep, viewRange.endsAt, viewRange.startsAt]);
+  }, [
+    dayEndMinutes,
+    dayStartMinutes,
+    examAvailability,
+    occupiedTimestampSet,
+    slotStep,
+    viewRange.endsAt,
+    viewRange.startsAt,
+  ]);
 
   const fetchAvailability = useCallback(async () => {
     if (!exam) {
@@ -477,11 +529,15 @@ export const useExamSchedulingCalendar = ({
 
       const isPast = date.getTime() <= Date.now();
       const isBusy = occupiedTimestampSet.has(date.getTime());
-      const isOutOfWindow = !isWithinOperationWindow(date, slotStep);
+      const isUnavailable = !isWithinExamAvailability(
+        date,
+        slotStep,
+        examAvailability,
+      );
       const isSelected =
         selectedSlotStart !== null && selectedSlotStart.getTime() === date.getTime();
 
-      if (!isPast && !isBusy && !isOutOfWindow) {
+      if (!isPast && !isBusy && !isUnavailable) {
         return {
           className: isSelected ? 'ep-slot-available ep-slot-selected' : 'ep-slot-available',
         };
@@ -491,7 +547,7 @@ export const useExamSchedulingCalendar = ({
         className: isBusy ? 'ep-slot-busy' : 'ep-slot-unavailable',
       };
     },
-    [occupiedTimestampSet, selectedSlotStart, slotStep],
+    [examAvailability, occupiedTimestampSet, selectedSlotStart, slotStep],
   );
 
   const dayPropGetter = useCallback(
@@ -579,6 +635,7 @@ export const useExamSchedulingCalendar = ({
 
   return {
     exam,
+    examAvailability,
     isLoadingExam,
     isLoadingAvailability,
     isSubmitting,

@@ -1,6 +1,7 @@
 import api from '@/services/api';
 import { executeRequest } from '@/utils/request';
 import {
+  createExam,
   deleteExamById,
   exportExamsCsv,
   getExamById,
@@ -93,6 +94,35 @@ describe('exams service', () => {
     expect(mockedApi.get).toHaveBeenCalledWith('/exams/all', { params: {} });
   });
 
+  it('should create exam through centralized request flow', async () => {
+    (executeRequest as jest.Mock).mockResolvedValue({
+      id: 'exam-2',
+      name: 'Vitamina D',
+      description: 'Dosagem de vitamina D',
+      durationMinutes: 20,
+      priceCents: 7900,
+    });
+
+    const payload = {
+      name: 'Vitamina D',
+      description: 'Dosagem de vitamina D',
+      durationMinutes: 20,
+      priceCents: 7900,
+      availableWeekdays: [1, 2, 3, 4, 5],
+      availableStartTime: '07:00',
+      availableEndTime: '19:00',
+      availableFromDate: '2026-05-01',
+      availableToDate: '2026-12-31',
+    };
+
+    await createExam(payload);
+
+    expect(executeRequest).toHaveBeenCalledTimes(1);
+    const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
+    await requestFactory();
+    expect(mockedApi.post).toHaveBeenCalledWith('/exams', payload);
+  });
+
   it('should update exam by id through centralized request flow', async () => {
     (executeRequest as jest.Mock).mockResolvedValue({
       id: 'exam-1',
@@ -107,6 +137,11 @@ describe('exams service', () => {
       description: 'Descrição',
       durationMinutes: 45,
       priceCents: 15000,
+      availableWeekdays: [1, 2, 3, 4, 5],
+      availableStartTime: '08:00',
+      availableEndTime: '18:00',
+      availableFromDate: '2026-05-01',
+      availableToDate: '2026-12-31',
     };
 
     await updateExamById('exam-1', payload);

@@ -1,4 +1,8 @@
 import { AppointmentStatus } from '@/domain/commons/enums/appointment-status.enum';
+import {
+  isScheduledAtWithinExamAvailability,
+  normalizeExamAvailability,
+} from '@/domain/commons/utils/exam-availability.util';
 import { assertOwner } from '@/domain/commons/utils/profile-authorization.util';
 import { IExamRepository } from '@/domain/interfaces/repositories/exam.repository';
 import { IAppointmentRepository } from '@/domain/interfaces/repositories/appointment.repository';
@@ -50,6 +54,17 @@ export class RequestAppointmentChangeUseCase
     const exam = await this.examRepository.findById(targetExamId);
     if (!exam) {
       throw new NotFoundException('Exam not found');
+    }
+
+    const examAvailability = normalizeExamAvailability(exam);
+    if (
+      !isScheduledAtWithinExamAvailability(
+        targetScheduledAt,
+        exam.durationMinutes,
+        examAvailability,
+      )
+    ) {
+      throw new BadRequestException('Scheduled date is outside exam availability');
     }
 
     const isSameExam = targetExamId === appointment.examId;

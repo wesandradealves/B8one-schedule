@@ -11,6 +11,7 @@ import {
   EXAM_CALENDAR_MESSAGES,
   EXAM_CALENDAR_VIEWS,
 } from '@/utils/exam-scheduling-calendar';
+import { getWeekdaySummary } from '@/utils/exam-availability';
 import { formatDateTime } from '@/utils/format';
 
 const CalendarCard = styled.section.attrs({
@@ -268,6 +269,7 @@ interface ExamSchedulingCalendarSectionProps {
 export function ExamSchedulingCalendarSection({ examId }: ExamSchedulingCalendarSectionProps) {
   const {
     exam,
+    examAvailability,
     isLoadingExam,
     isLoadingAvailability,
     isSubmitting,
@@ -331,12 +333,25 @@ export function ExamSchedulingCalendarSection({ examId }: ExamSchedulingCalendar
           <SlotLegendBadge $kind="available">Disponível</SlotLegendBadge>
           <span>verde e clicável</span>
           <SlotLegendBadge $kind="blocked">Indisponível</SlotLegendBadge>
-          <span>reservado, passado ou fora da janela</span>
+          <span>reservado, passado ou fora da disponibilidade</span>
         </SummaryRow>
         <SummaryRow>
           <span>Duração: {exam.durationMinutes} minutos</span>
           <span>•</span>
-          <span>Operação: 07:00 às 19:00</span>
+          <span>
+            Horário: {examAvailability.availableStartTime} às {examAvailability.availableEndTime}
+          </span>
+          <span>•</span>
+          <span>Dias: {getWeekdaySummary(examAvailability.availableWeekdays) || '-'}</span>
+          {examAvailability.availableFromDate || examAvailability.availableToDate ? (
+            <>
+              <span>•</span>
+              <span>
+                Período:{' '}
+                {`${examAvailability.availableFromDate ?? 'sem início'} até ${examAvailability.availableToDate ?? 'sem fim'}`}
+              </span>
+            </>
+          ) : null}
           {isLoadingAvailability ? <span>• atualizando disponibilidade...</span> : null}
         </SummaryRow>
 

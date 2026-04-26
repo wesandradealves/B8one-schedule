@@ -14,6 +14,30 @@ import {
   makeExamEntity,
 } from '../../../helpers/factories';
 
+const makeFutureSchedule = (): Date => {
+  const value = new Date();
+  value.setDate(value.getDate() + 1);
+  value.setHours(10, 0, 0, 0);
+  return value;
+};
+
+const makeFutureWeekdaySchedule = (
+  weekday: number,
+  hours: number,
+  minutes = 0,
+): Date => {
+  const value = new Date();
+  const dayOffset = (weekday - value.getDay() + 7) % 7;
+  value.setDate(value.getDate() + dayOffset);
+  value.setHours(hours, minutes, 0, 0);
+
+  if (value.getTime() <= Date.now()) {
+    value.setDate(value.getDate() + 7);
+  }
+
+  return value;
+};
+
 type Sut = {
   useCase: RequestAppointmentChangeUseCase;
   appointmentRepository: jest.Mocked<IAppointmentRepository>;
@@ -110,7 +134,7 @@ describe('RequestAppointmentChangeUseCase', () => {
     appointmentRepository.findById.mockResolvedValue(
       makeAppointmentEntity({
         userId: 'owner-id',
-        scheduledAt: new Date(Date.now() + 60_000),
+        scheduledAt: makeFutureSchedule(),
       }),
     );
 
@@ -138,9 +162,34 @@ describe('RequestAppointmentChangeUseCase', () => {
     ).rejects.toThrow(new NotFoundException('Exam not found'));
   });
 
+  it('throws BadRequestException when requested date is outside exam availability', async () => {
+    const { useCase, appointmentRepository, examRepository } = createSut();
+    appointmentRepository.findById.mockResolvedValue(
+      makeAppointmentEntity({ userId: 'owner-id', examId: 'exam-id-1' }),
+    );
+    examRepository.findById.mockResolvedValue(
+      makeExamEntity({
+        id: 'exam-id-1',
+        availableWeekdays: [1],
+        availableStartTime: '09:00',
+        availableEndTime: '10:00',
+      }),
+    );
+
+    await expect(
+      useCase.execute({
+        appointmentId: 'appointment-id-1',
+        user: makeAuthenticatedUser({ id: 'owner-id' }),
+        scheduledAt: makeFutureWeekdaySchedule(2, 11, 0),
+      }),
+    ).rejects.toThrow(
+      new BadRequestException('Scheduled date is outside exam availability'),
+    );
+  });
+
   it('throws BadRequestException when no effective change is provided', async () => {
     const { useCase, appointmentRepository, examRepository } = createSut();
-    const scheduledAt = new Date(Date.now() + 120_000);
+    const scheduledAt = makeFutureSchedule();
 
     appointmentRepository.findById.mockResolvedValue(
       makeAppointmentEntity({
@@ -184,14 +233,14 @@ describe('RequestAppointmentChangeUseCase', () => {
 
   it('requests change and publishes event', async () => {
     const { useCase, appointmentRepository, examRepository, messagingProvider } = createSut();
-    const newSchedule = new Date(Date.now() + 240_000);
+    const newSchedule = makeFutureSchedule();
 
     appointmentRepository.findById.mockResolvedValue(
       makeAppointmentEntity({
         id: 'appointment-id-1',
         userId: 'owner-id',
         examId: 'exam-id-1',
-        scheduledAt: new Date(Date.now() + 120_000),
+        scheduledAt: makeFutureSchedule(),
       }),
     );
     examRepository.findById.mockResolvedValue(makeExamEntity({ id: 'exam-id-2' }));

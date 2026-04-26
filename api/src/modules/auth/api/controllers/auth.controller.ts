@@ -25,6 +25,10 @@ import {
   IResetPasswordUseCase,
   ResetPasswordUseCaseInput,
 } from '@/domain/interfaces/use-cases/auth/reset-password.use-case';
+import {
+  IVerifyEmailConfirmationUseCase,
+  VerifyEmailConfirmationUseCaseInput,
+} from '@/domain/interfaces/use-cases/auth/verify-email-confirmation.use-case';
 import { LoginRequestDto } from '../dto/login.request.dto';
 import { LoginResponseDto } from '../dto/login.response.dto';
 import { VerifyTwoFactorRequestDto } from '../dto/verify-two-factor.request.dto';
@@ -35,12 +39,15 @@ import { VerifyPasswordRecoveryCodeRequestDto } from '../dto/verify-password-rec
 import { VerifyPasswordRecoveryCodeResponseDto } from '../dto/verify-password-recovery-code.response.dto';
 import { ResetPasswordRequestDto } from '../dto/reset-password.request.dto';
 import { ResetPasswordResponseDto } from '../dto/reset-password.response.dto';
+import { VerifyEmailConfirmationRequestDto } from '../dto/verify-email-confirmation.request.dto';
+import { VerifyEmailConfirmationResponseDto } from '../dto/verify-email-confirmation.response.dto';
 import { ZodValidationPipe } from '@/infrastructure/http/pipes/zod.validation.pipe';
 import { loginSchema } from '../schemas/login.schema';
 import { verifyTwoFactorSchema } from '../schemas/verify-two-factor.schema';
 import { requestPasswordRecoverySchema } from '../schemas/request-password-recovery.schema';
 import { verifyPasswordRecoveryCodeSchema } from '../schemas/verify-password-recovery-code.schema';
 import { resetPasswordSchema } from '../schemas/reset-password.schema';
+import { verifyEmailConfirmationSchema } from '../schemas/verify-email-confirmation.schema';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -56,6 +63,8 @@ export class AuthController {
     private readonly verifyPasswordRecoveryCodeUseCase: IVerifyPasswordRecoveryCodeUseCase,
     @Inject(IResetPasswordUseCase)
     private readonly resetPasswordUseCase: IResetPasswordUseCase,
+    @Inject(IVerifyEmailConfirmationUseCase)
+    private readonly verifyEmailConfirmationUseCase: IVerifyEmailConfirmationUseCase,
   ) {}
 
   @Post('login')
@@ -116,5 +125,17 @@ export class AuthController {
     payload: ResetPasswordUseCaseInput,
   ): Promise<ResetPasswordResponseDto> {
     return this.resetPasswordUseCase.execute(payload);
+  }
+
+  @Post('email-confirmation/verify')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Confirm user e-mail and activate account' })
+  @ApiBody({ type: VerifyEmailConfirmationRequestDto })
+  @ApiResponse({ status: 200, type: VerifyEmailConfirmationResponseDto })
+  async verifyEmailConfirmation(
+    @Body(new ZodValidationPipe(verifyEmailConfirmationSchema))
+    payload: VerifyEmailConfirmationUseCaseInput,
+  ): Promise<VerifyEmailConfirmationResponseDto> {
+    return this.verifyEmailConfirmationUseCase.execute(payload);
   }
 }

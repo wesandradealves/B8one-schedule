@@ -12,7 +12,7 @@ describe('useProtectedNavigation', () => {
     jest.clearAllMocks();
   });
 
-  it('should include users route only for admin profile', () => {
+  it('should build admin and client navigation according to profile', () => {
     useAuthMock.mockReturnValue({
       user: {
         id: 'admin-1',
@@ -22,8 +22,12 @@ describe('useProtectedNavigation', () => {
     });
 
     const { result, rerender } = renderHook(() => useProtectedNavigation());
-    expect(result.current.some((item) => item.href === '/app/exams')).toBe(true);
-    expect(result.current.some((item) => item.href === '/app/users')).toBe(true);
+    expect(result.current).toEqual([
+      { label: 'Usuários', href: '/app/users', icon: 'users' },
+      { label: 'Exames', href: '/app/exams', icon: 'exams' },
+      { label: 'Agendamentos', href: '/app/appointments', icon: 'appointments' },
+    ]);
+    expect(result.current.some((item) => item.href === '/app')).toBe(false);
 
     useAuthMock.mockReturnValue({
       user: {
@@ -34,7 +38,9 @@ describe('useProtectedNavigation', () => {
     });
 
     rerender();
-    expect(result.current.some((item) => item.href === '/app/exams')).toBe(false);
-    expect(result.current.some((item) => item.href === '/app/users')).toBe(false);
+    expect(result.current).toEqual([
+      { label: 'Início', href: '/app', icon: 'home' },
+      { label: 'Agendamentos', href: '/app/appointments', icon: 'appointments' },
+    ]);
   });
 });

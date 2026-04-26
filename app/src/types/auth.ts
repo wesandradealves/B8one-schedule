@@ -59,6 +59,14 @@ export interface ResetPasswordResponse {
   message: string;
 }
 
+export interface VerifyEmailConfirmationPayload {
+  token: string;
+}
+
+export interface VerifyEmailConfirmationResponse {
+  message: string;
+}
+
 export type AuthFlowMode = 'login' | 'recovery';
 
 export type AuthFlowStep =

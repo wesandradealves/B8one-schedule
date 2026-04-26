@@ -653,11 +653,15 @@ Implementações aplicadas e validadas no fluxo de autenticação:
 - Botões com estado de carregamento usando `aria-busy`.
 - Loader global com `role="status"` e `aria-live="polite"`.
 
-### 12.5 Capturas do fluxo de autenticação
+### 12.5 Capturas de telas (Frontend)
 
 #### Login
 
 ![Tela de login](docs/screenshots/login.png)
+
+#### Confirmação de e-mail
+
+![Tela de confirmação de e-mail](docs/screenshots/confirm-email.png)
 
 #### OTP (2FA)
 
@@ -667,21 +671,37 @@ Implementações aplicadas e validadas no fluxo de autenticação:
 
 ![Tela de recuperação de senha](docs/screenshots/recovery-password.png)
 
-#### Minha conta
+#### Início do cliente (cards de exames)
+
+![Tela inicial do cliente](docs/screenshots/client-home.png)
+
+#### Agendamentos (cliente)
+
+![Tela de listagem de agendamentos](docs/screenshots/appointments-list.png)
+
+#### Minha conta (cliente)
 
 ![Tela de minha conta](docs/screenshots/my-account.png)
 
-#### Exames (listagem)
+#### Agendamento (calendário)
 
-![Tela de listagem de exames](docs/screenshots/exams-list.png)
-
-#### Agendamentos (listagem)
-
-![Tela de listagem de agendamentos](docs/screenshots/appointments-list.png)
+![Tela de calendário de agendamento](docs/screenshots/exam-scheduling-calendar.png)
 
 #### Usuários (listagem admin)
 
 ![Tela de listagem de usuários](docs/screenshots/users-list.png)
+
+#### Novo usuário (admin)
+
+![Tela de criação de usuário](docs/screenshots/users-create.png)
+
+#### Exames (listagem admin)
+
+![Tela de listagem de exames](docs/screenshots/exams-list.png)
+
+#### Novo exame (admin)
+
+![Tela de criação de exame](docs/screenshots/exams-create.png)
 
 ## 13. Validação Executada (Backend)
 

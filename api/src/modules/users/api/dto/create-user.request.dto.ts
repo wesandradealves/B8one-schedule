@@ -1,5 +1,5 @@
 import { UserProfile } from '@/domain/commons/enums/user-profile.enum';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateUserRequestDto {
   @ApiProperty()
@@ -13,7 +13,4 @@ export class CreateUserRequestDto {
 
   @ApiProperty({ enum: UserProfile, enumName: 'UserProfile' })
   profile: UserProfile;
-
-  @ApiPropertyOptional()
-  isActive?: boolean;
 }

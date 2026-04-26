@@ -6,7 +6,12 @@ import type {
   PaginatedResult,
   SortOrder,
 } from '@/types/api';
-import type { UpdateUserPayload, User, UserListSortBy } from '@/types/user';
+import type {
+  CreateUserPayload,
+  UpdateUserPayload,
+  User,
+  UserListSortBy,
+} from '@/types/user';
 
 interface ListUsersParams {
   page?: number;
@@ -34,6 +39,10 @@ export const updateUserById = async (
   payload: UpdateUserPayload,
 ): Promise<User> => {
   return executeRequest(() => api.patch<User>(`/users/${id}`, payload));
+};
+
+export const createUser = async (payload: CreateUserPayload): Promise<User> => {
+  return executeRequest(() => api.post<User>('/users', payload));
 };
 
 export const deleteUserById = async (id: string): Promise<void> => {

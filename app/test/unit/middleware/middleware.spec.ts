@@ -51,11 +51,24 @@ describe('middleware', () => {
     expect(response.headers.get('location')).toBe('http://localhost:3001/login');
   });
 
-  it('should redirect root to app when authenticated', () => {
+  it('should redirect root to users when authenticated admin', () => {
     const token = buildToken({
       sub: '1',
       email: 'admin@b8one.com',
       profile: 'ADMIN',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    const response = middleware(createRequest('/', { token }));
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe('http://localhost:3001/app/users');
+  });
+
+  it('should redirect root to app when authenticated client', () => {
+    const token = buildToken({
+      sub: '2',
+      email: 'client@b8one.com',
+      profile: 'CLIENT',
       exp: Math.floor(Date.now() / 1000) + 3600,
     });
 
@@ -72,11 +85,24 @@ describe('middleware', () => {
     );
   });
 
-  it('should redirect login to app when authenticated', () => {
+  it('should redirect login to users when authenticated admin', () => {
     const token = buildToken({
       sub: '1',
       email: 'admin@b8one.com',
       profile: 'ADMIN',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    const response = middleware(createRequest('/login', { token }));
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe('http://localhost:3001/app/users');
+  });
+
+  it('should redirect login to app when authenticated client', () => {
+    const token = buildToken({
+      sub: '2',
+      email: 'client@b8one.com',
+      profile: 'CLIENT',
       exp: Math.floor(Date.now() / 1000) + 3600,
     });
 
@@ -129,6 +155,45 @@ describe('middleware', () => {
     expect(response.headers.get('location')).toBeNull();
   });
 
+  it('should redirect app route to users for admin profile', () => {
+    const token = buildToken({
+      sub: '1',
+      email: 'admin@b8one.com',
+      profile: 'ADMIN',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    const response = middleware(createRequest('/app', { token }));
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe('http://localhost:3001/app/users');
+  });
+
+  it('should block users create route for non-admin profiles', () => {
+    const token = buildToken({
+      sub: '2',
+      email: 'client@b8one.com',
+      profile: 'CLIENT',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    const response = middleware(createRequest('/app/users/new', { token }));
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe('http://localhost:3001/app');
+  });
+
+  it('should allow users create route for admin profiles', () => {
+    const token = buildToken({
+      sub: '1',
+      email: 'admin@b8one.com',
+      profile: 'ADMIN',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    const response = middleware(createRequest('/app/users/new', { token }));
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
+  });
+
   it('should redirect exams list route for non-admin profiles', () => {
     const token = buildToken({
       sub: '2',
@@ -151,6 +216,32 @@ describe('middleware', () => {
     });
 
     const response = middleware(createRequest('/app/exams/exam-id-1', { token }));
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
+  });
+
+  it('should redirect exams create route for non-admin profiles', () => {
+    const token = buildToken({
+      sub: '2',
+      email: 'client@b8one.com',
+      profile: 'CLIENT',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    const response = middleware(createRequest('/app/exams/new', { token }));
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe('http://localhost:3001/app');
+  });
+
+  it('should allow exams create route for admin profiles', () => {
+    const token = buildToken({
+      sub: '1',
+      email: 'admin@b8one.com',
+      profile: 'ADMIN',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    const response = middleware(createRequest('/app/exams/new', { token }));
     expect(response.status).toBe(200);
     expect(response.headers.get('location')).toBeNull();
   });

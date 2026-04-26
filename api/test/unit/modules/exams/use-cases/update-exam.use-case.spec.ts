@@ -1,4 +1,9 @@
 import { EXAMS_LIST_CACHE_VERSION_KEY } from '@/domain/commons/constants/exam-cache.constant';
+import {
+  DEFAULT_EXAM_AVAILABLE_END_TIME,
+  DEFAULT_EXAM_AVAILABLE_START_TIME,
+  DEFAULT_EXAM_AVAILABLE_WEEKDAYS,
+} from '@/domain/commons/utils/exam-availability.util';
 import { ICacheProvider } from '@/domain/interfaces/providers/cache.provider';
 import {
   BadRequestException,
@@ -66,7 +71,17 @@ describe('UpdateExamUseCase', () => {
   });
 
   it('throws BadRequestException when duration is invalid', async () => {
-    const { useCase } = createSut();
+    const { useCase, examRepository } = createSut();
+    examRepository.findAnyById.mockResolvedValue(
+      makeExamEntity({
+        id: 'exam-id-1',
+        availableWeekdays: [...DEFAULT_EXAM_AVAILABLE_WEEKDAYS],
+        availableStartTime: DEFAULT_EXAM_AVAILABLE_START_TIME,
+        availableEndTime: DEFAULT_EXAM_AVAILABLE_END_TIME,
+        availableFromDate: null,
+        availableToDate: null,
+      }),
+    );
 
     await expect(
       useCase.execute({
@@ -78,7 +93,17 @@ describe('UpdateExamUseCase', () => {
   });
 
   it('throws BadRequestException when price is negative', async () => {
-    const { useCase } = createSut();
+    const { useCase, examRepository } = createSut();
+    examRepository.findAnyById.mockResolvedValue(
+      makeExamEntity({
+        id: 'exam-id-1',
+        availableWeekdays: [...DEFAULT_EXAM_AVAILABLE_WEEKDAYS],
+        availableStartTime: DEFAULT_EXAM_AVAILABLE_START_TIME,
+        availableEndTime: DEFAULT_EXAM_AVAILABLE_END_TIME,
+        availableFromDate: null,
+        availableToDate: null,
+      }),
+    );
 
     await expect(
       useCase.execute({
@@ -89,8 +114,22 @@ describe('UpdateExamUseCase', () => {
     ).rejects.toThrow(new BadRequestException('Price cannot be negative'));
   });
 
+  it('throws NotFoundException when exam does not exist before update', async () => {
+    const { useCase, examRepository } = createSut();
+    examRepository.findAnyById.mockResolvedValue(null);
+
+    await expect(
+      useCase.execute({
+        id: 'missing-id',
+        user: makeAuthenticatedUser({ profile: UserProfile.ADMIN }),
+        name: 'Updated',
+      }),
+    ).rejects.toThrow(new NotFoundException('Exam not found'));
+  });
+
   it('throws NotFoundException when exam does not exist', async () => {
     const { useCase, examRepository } = createSut();
+    examRepository.findAnyById.mockResolvedValue(makeExamEntity({ id: 'missing-id' }));
     examRepository.updateExam.mockResolvedValue(null);
 
     await expect(
@@ -105,6 +144,16 @@ describe('UpdateExamUseCase', () => {
   it('updates exam and publishes event', async () => {
     const { useCase, examRepository, cacheProvider, messagingProvider } = createSut();
 
+    examRepository.findAnyById.mockResolvedValue(
+      makeExamEntity({
+        id: 'exam-id-1',
+        availableWeekdays: [...DEFAULT_EXAM_AVAILABLE_WEEKDAYS],
+        availableStartTime: DEFAULT_EXAM_AVAILABLE_START_TIME,
+        availableEndTime: DEFAULT_EXAM_AVAILABLE_END_TIME,
+        availableFromDate: null,
+        availableToDate: null,
+      }),
+    );
     examRepository.updateExam.mockResolvedValue(
       makeExamEntity({ id: 'exam-id-1', name: 'Updated Exam' }),
     );
@@ -123,6 +172,11 @@ describe('UpdateExamUseCase', () => {
       description: undefined,
       durationMinutes: 40,
       priceCents: 20000,
+      availableWeekdays: [...DEFAULT_EXAM_AVAILABLE_WEEKDAYS],
+      availableStartTime: DEFAULT_EXAM_AVAILABLE_START_TIME,
+      availableEndTime: DEFAULT_EXAM_AVAILABLE_END_TIME,
+      availableFromDate: null,
+      availableToDate: null,
       isActive: true,
     });
     expect(messagingProvider.publish).toHaveBeenCalledWith('exams.updated', {

@@ -5,7 +5,7 @@ import type {
   PaginatedResult,
   PaginationQueryParams,
 } from '@/types/api';
-import type { Exam, ExamListSortBy } from '@/types/exam';
+import type { CreateExamPayload, Exam, ExamListSortBy } from '@/types/exam';
 import { executeRequest } from '@/utils/request';
 
 interface ListExamsParams extends PaginationQueryParams {
@@ -27,11 +27,20 @@ export const getExamById = async (id: string): Promise<Exam> => {
   return executeRequest(() => api.get<Exam>(`/exams/${id}`));
 };
 
+export const createExam = async (payload: CreateExamPayload): Promise<Exam> => {
+  return executeRequest(() => api.post<Exam>('/exams', payload));
+};
+
 export interface UpdateExamPayload {
   name?: string;
   description?: string | null;
   durationMinutes?: number;
   priceCents?: number;
+  availableWeekdays?: number[];
+  availableStartTime?: string;
+  availableEndTime?: string;
+  availableFromDate?: string | null;
+  availableToDate?: string | null;
 }
 
 export const updateExamById = async (

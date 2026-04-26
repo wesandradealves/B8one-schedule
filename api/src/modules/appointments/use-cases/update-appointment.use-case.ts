@@ -1,5 +1,9 @@
 import { AppointmentChangeStatus } from '@/domain/commons/enums/appointment-change-status.enum';
 import { AppointmentStatus } from '@/domain/commons/enums/appointment-status.enum';
+import {
+  isScheduledAtWithinExamAvailability,
+  normalizeExamAvailability,
+} from '@/domain/commons/utils/exam-availability.util';
 import { assertAdmin } from '@/domain/commons/utils/profile-authorization.util';
 import { IAppointmentRepository } from '@/domain/interfaces/repositories/appointment.repository';
 import { IExamRepository } from '@/domain/interfaces/repositories/exam.repository';
@@ -52,6 +56,19 @@ export class UpdateAppointmentUseCase implements IUpdateAppointmentUseCase {
       const exam = await this.examRepository.findById(targetExamId);
       if (!exam) {
         throw new NotFoundException('Exam not found');
+      }
+
+      const examAvailability = normalizeExamAvailability(exam);
+      if (
+        !isScheduledAtWithinExamAvailability(
+          targetScheduledAt,
+          exam.durationMinutes,
+          examAvailability,
+        )
+      ) {
+        throw new BadRequestException(
+          'Scheduled date is outside exam availability',
+        );
       }
 
       const conflict = await this.appointmentRepository.findExamScheduleConflict(

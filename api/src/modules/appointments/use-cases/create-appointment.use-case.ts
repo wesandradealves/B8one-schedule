@@ -1,5 +1,9 @@
 import { Permission } from '@/domain/commons/enums/permission.enum';
 import { AppointmentStatus } from '@/domain/commons/enums/appointment-status.enum';
+import {
+  isScheduledAtWithinExamAvailability,
+  normalizeExamAvailability,
+} from '@/domain/commons/utils/exam-availability.util';
 import { isAdmin } from '@/domain/commons/utils/profile-authorization.util';
 import { IAppointmentRepository } from '@/domain/interfaces/repositories/appointment.repository';
 import { IExamRepository } from '@/domain/interfaces/repositories/exam.repository';
@@ -35,6 +39,19 @@ export class CreateAppointmentUseCase implements ICreateAppointmentUseCase {
     const exam = await this.examRepository.findById(input.examId);
     if (!exam) {
       throw new NotFoundException('Exam not found');
+    }
+
+    const examAvailability = normalizeExamAvailability(exam);
+    if (
+      !isScheduledAtWithinExamAvailability(
+        input.scheduledAt,
+        exam.durationMinutes,
+        examAvailability,
+      )
+    ) {
+      throw new BadRequestException(
+        'Scheduled date is outside exam availability',
+      );
     }
 
     const conflict = await this.appointmentRepository.findExamScheduleConflict(
