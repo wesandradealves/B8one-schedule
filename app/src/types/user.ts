@@ -17,3 +17,10 @@ export interface UpdateUserPayload {
   profile?: UserProfile;
   isActive?: boolean;
 }
+
+export interface CreateUserPayload {
+  fullName: string;
+  email: string;
+  password: string;
+  profile: UserProfile;
+}

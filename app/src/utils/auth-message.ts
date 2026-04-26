@@ -7,6 +7,8 @@ const AUTH_MESSAGE_TRANSLATIONS: Record<string, string> = {
   'Verification code validated successfully.':
     'Código de verificação validado com sucesso.',
   'Password updated successfully.': 'Senha atualizada com sucesso.',
+  'Invalid or expired e-mail confirmation link':
+    'Link de confirmação inválido ou expirado.',
 };
 
 export const normalizeAuthMessage = (

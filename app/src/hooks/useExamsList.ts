@@ -153,8 +153,8 @@ export const useExamsList = () => {
       return;
     }
 
-    if (!Number.isInteger(priceCents) || priceCents <= 0) {
-      publish('error', 'Informe um valor válido em centavos.');
+    if (!Number.isInteger(priceCents) || priceCents < 0) {
+      publish('error', 'Informe um valor em centavos igual ou maior que zero.');
       return;
     }
 

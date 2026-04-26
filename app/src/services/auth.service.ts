@@ -7,6 +7,8 @@ import type {
   RequestPasswordRecoveryResponse,
   ResetPasswordPayload,
   ResetPasswordResponse,
+  VerifyEmailConfirmationPayload,
+  VerifyEmailConfirmationResponse,
   VerifyPasswordRecoveryCodePayload,
   VerifyPasswordRecoveryCodeResponse,
   VerifyTwoFactorPayload,
@@ -44,5 +46,16 @@ export const resetPassword = async (
 ): Promise<ResetPasswordResponse> => {
   return executeRequest(() =>
     api.post<ResetPasswordResponse>('/auth/password-recovery/reset', payload),
+  );
+};
+
+export const verifyEmailConfirmation = async (
+  payload: VerifyEmailConfirmationPayload,
+): Promise<VerifyEmailConfirmationResponse> => {
+  return executeRequest(() =>
+    api.post<VerifyEmailConfirmationResponse>(
+      '/auth/email-confirmation/verify',
+      payload,
+    ),
   );
 };

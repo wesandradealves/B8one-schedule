@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo } from 'react';
 import styled from 'styled-components';
+import { ListCreateLink } from '@/components/atoms/list-create-link';
 import { ListActionButton } from '@/components/atoms/list-action-button';
 import { ListFormInput, ListFormSelect } from '@/components/atoms/list-form-controls';
 import { ActionConfirmDialog } from '@/components/molecules/action-confirm-dialog';
@@ -15,6 +16,7 @@ import { useActionConfirmation } from '@/hooks/useActionConfirmation';
 import { useUsersList } from '@/hooks/useUsersList';
 import type { SortOrder } from '@/types/api';
 import type { User, UserListSortBy } from '@/types/user';
+import { APP_ROUTES } from '@/utils/route';
 
 const Controls = styled.div.attrs({
   className: 'flex items-center gap-2',
@@ -44,6 +46,14 @@ const FilterWrapper = styled.div.attrs({
 
 const HeaderRightContent = styled.div.attrs({
   className: 'flex flex-wrap items-center justify-end gap-2',
+})``;
+
+const HeaderSummary = styled.div.attrs({
+  className: 'mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between',
+})``;
+
+const HeaderDescription = styled(PageDescription).attrs({
+  className: 'mt-0',
 })``;
 
 const FilterLabel = styled.label.attrs({
@@ -334,9 +344,10 @@ export function UsersListSection() {
   return (
     <PageContainer>
       <PageTitle>Usuários</PageTitle>
-      <PageDescription>
-        Listagem administrativa com paginação de 8 itens por página.
-      </PageDescription>
+      <HeaderSummary>
+        <HeaderDescription>Listagem administrativa com paginação de 8 itens por página.</HeaderDescription>
+        <ListCreateLink href={APP_ROUTES.usersCreate}>Adicionar usuário</ListCreateLink>
+      </HeaderSummary>
 
       <PaginatedListTable
         columns={columns}

@@ -12,6 +12,13 @@ describe('auth-message utils', () => {
         'Falha ao validar código',
       ),
     ).toBe('Código de verificação inválido ou expirado.');
+
+    expect(
+      normalizeAuthMessage(
+        'Invalid or expired e-mail confirmation link',
+        'Falha ao confirmar e-mail',
+      ),
+    ).toBe('Link de confirmação inválido ou expirado.');
   });
 
   it('should keep unknown messages unchanged', () => {

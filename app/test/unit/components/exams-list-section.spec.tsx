@@ -51,6 +51,7 @@ describe('ExamsListSection', () => {
     render(<ExamsListSection />);
 
     expect(screen.getByText('Hemograma')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Adicionar exame' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Excluir' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Importar CSV' })).not.toBeInTheDocument();
@@ -98,6 +99,10 @@ describe('ExamsListSection', () => {
 
     render(<ExamsListSection />);
 
+    expect(screen.getByRole('link', { name: 'Adicionar exame' })).toHaveAttribute(
+      'href',
+      '/app/exams/new',
+    );
     expect(screen.getByRole('button', { name: 'Importar CSV' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Exportar CSV' })).toBeInTheDocument();
 

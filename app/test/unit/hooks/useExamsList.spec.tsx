@@ -116,7 +116,7 @@ describe('useExamsList', () => {
       result.current.startEdit(result.current.exams[0]);
       result.current.setEditField('name', 'A');
       result.current.setEditField('durationMinutes', '0');
-      result.current.setEditField('priceCents', '0');
+      result.current.setEditField('priceCents', '-1');
     });
 
     await act(async () => {
@@ -127,6 +127,21 @@ describe('useExamsList', () => {
     expect(publishMock).toHaveBeenCalledWith(
       'error',
       'Informe o nome do exame com ao menos 2 caracteres.',
+    );
+
+    act(() => {
+      result.current.setEditField('name', 'Hemograma');
+      result.current.setEditField('durationMinutes', '30');
+      result.current.setEditField('priceCents', '-1');
+    });
+
+    await act(async () => {
+      await result.current.saveEdit();
+    });
+
+    expect(publishMock).toHaveBeenCalledWith(
+      'error',
+      'Informe um valor em centavos igual ou maior que zero.',
     );
   });
 

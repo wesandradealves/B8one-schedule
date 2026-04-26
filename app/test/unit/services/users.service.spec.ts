@@ -1,6 +1,7 @@
 import api from '@/services/api';
 import { executeRequest } from '@/utils/request';
 import {
+  createUser,
   deleteUserById,
   exportUsersCsv,
   getUserById,
@@ -70,6 +71,29 @@ describe('users service', () => {
     const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
     await requestFactory();
     expect(mockedApi.patch).toHaveBeenCalledWith('/users/user-1', payload);
+  });
+
+  it('should create user through executeRequest', async () => {
+    (executeRequest as jest.Mock).mockResolvedValue({
+      id: 'user-2',
+      fullName: 'Novo Usuário',
+      email: 'novo@b8one.com',
+      profile: 'CLIENT',
+      isActive: true,
+    });
+
+    const payload = {
+      fullName: 'Novo Usuário',
+      email: 'novo@b8one.com',
+      password: 'Senha123',
+      profile: 'CLIENT' as const,
+    };
+    await createUser(payload);
+
+    expect(executeRequest).toHaveBeenCalledTimes(1);
+    const requestFactory = (executeRequest as jest.Mock).mock.calls[0][0];
+    await requestFactory();
+    expect(mockedApi.post).toHaveBeenCalledWith('/users', payload);
   });
 
   it('should list users through paginated all endpoint', async () => {

@@ -38,12 +38,35 @@ const makeDate = (daysFromNow: number, hours: number, minutes = 0): Date => {
   return value;
 };
 
+const makeNextWeekdayDate = (
+  weekday: number,
+  hours: number,
+  minutes = 0,
+): Date => {
+  const value = new Date();
+  value.setSeconds(0, 0);
+  const dayOffset = (weekday - value.getDay() + 7) % 7;
+  value.setDate(value.getDate() + dayOffset);
+  value.setHours(hours, minutes, 0, 0);
+
+  if (value.getTime() <= Date.now()) {
+    value.setDate(value.getDate() + 7);
+  }
+
+  return value;
+};
+
 const baseExam = {
   id: 'exam-1',
   name: 'Hemograma Completo',
   description: 'Descrição',
   durationMinutes: 20,
   priceCents: 4500,
+  availableWeekdays: [0, 1, 2, 3, 4, 5, 6],
+  availableStartTime: '07:00',
+  availableEndTime: '19:00',
+  availableFromDate: null,
+  availableToDate: null,
 };
 
 describe('useExamSchedulingCalendar', () => {
@@ -243,6 +266,37 @@ describe('useExamSchedulingCalendar', () => {
     });
 
     expect(result.current.selectedSlotStart?.toISOString()).toBe(freeSlot.toISOString());
+  });
+
+  it('enforces exam availability settings when selecting slots', async () => {
+    (getExamById as jest.Mock).mockResolvedValue({
+      ...baseExam,
+      availableWeekdays: [2],
+      availableStartTime: '09:00',
+      availableEndTime: '10:00',
+    });
+
+    const { result } = renderSchedulingHook();
+    await waitForInitialLoad(result);
+
+    const unavailableSlot = makeNextWeekdayDate(2, 10, 20);
+    act(() => {
+      result.current.handleSelectSlot({ start: unavailableSlot } as never);
+    });
+
+    expect(publishMock).toHaveBeenCalledWith(
+      'error',
+      'Selecione um horário dentro da disponibilidade do exame.',
+    );
+
+    const availableSlot = makeNextWeekdayDate(2, 9, 0);
+    act(() => {
+      result.current.handleSelectSlot({ start: availableSlot } as never);
+    });
+
+    expect(result.current.selectedSlotStart?.toISOString()).toBe(
+      availableSlot.toISOString(),
+    );
   });
 
   it('supports month day selection and empty-day feedback', async () => {

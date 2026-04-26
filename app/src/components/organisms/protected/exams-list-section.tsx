@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo } from 'react';
 import styled from 'styled-components';
+import { ListCreateLink } from '@/components/atoms/list-create-link';
 import { ListActionButton } from '@/components/atoms/list-action-button';
 import { ListFormInput, ListFormSelect } from '@/components/atoms/list-form-controls';
 import { ActionConfirmDialog } from '@/components/molecules/action-confirm-dialog';
@@ -16,6 +17,7 @@ import { useExamsList } from '@/hooks/useExamsList';
 import type { SortOrder } from '@/types/api';
 import type { Exam, ExamListSortBy } from '@/types/exam';
 import { formatCurrencyFromCents } from '@/utils/format';
+import { APP_ROUTES } from '@/utils/route';
 
 const Controls = styled.div.attrs({
   className: 'flex items-center gap-2',
@@ -33,6 +35,14 @@ const FilterWrapper = styled.div.attrs({
 
 const HeaderRightContent = styled.div.attrs({
   className: 'flex flex-wrap items-center justify-end gap-2',
+})``;
+
+const HeaderSummary = styled.div.attrs({
+  className: 'mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between',
+})``;
+
+const HeaderDescription = styled(PageDescription).attrs({
+  className: 'mt-0',
 })``;
 
 const FilterLabel = styled.label.attrs({
@@ -171,7 +181,7 @@ export function ExamsListSection() {
               <ListFormInput
                 aria-label="Valor do exame"
                 disabled={isSaving}
-                min={1}
+                min={0}
                 step={1}
                 type="number"
                 value={editForm.priceCents}
@@ -295,9 +305,12 @@ export function ExamsListSection() {
   return (
     <PageContainer>
       <PageTitle>Exames</PageTitle>
-      <PageDescription>
-        Listagem padronizada com paginação de 8 itens por página.
-      </PageDescription>
+      <HeaderSummary>
+        <HeaderDescription>Listagem padronizada com paginação de 8 itens por página.</HeaderDescription>
+        {canManageExams ? (
+          <ListCreateLink href={APP_ROUTES.examsCreate}>Adicionar exame</ListCreateLink>
+        ) : null}
+      </HeaderSummary>
 
       <PaginatedListTable
         columns={columns}

@@ -5,12 +5,14 @@ import type { ButtonHTMLAttributes } from 'react';
 
 interface AuthPrimaryButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
+  fullWidth?: boolean;
 }
 
-const Button = styled.button.attrs({
+const Button = styled.button.attrs<{ $fullWidth: boolean }>({
   className:
-    'inline-flex h-11 w-full items-center justify-center rounded-xl bg-brand px-4 text-sm font-medium text-white transition-colors hover:bg-brand/95 disabled:cursor-not-allowed disabled:opacity-60',
+    'inline-flex h-11 items-center justify-center rounded-xl bg-brand px-4 text-sm font-medium text-white transition-colors hover:bg-brand/95 disabled:cursor-not-allowed disabled:opacity-60',
 })`
+  width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'auto')};
   box-shadow: 0 8px 16px
     color-mix(
       in srgb,
@@ -27,6 +29,7 @@ const InlineSpinner = styled.span.attrs({
 
 export function AuthPrimaryButton({
   loading = false,
+  fullWidth = true,
   children,
   disabled,
   ...props
@@ -34,7 +37,7 @@ export function AuthPrimaryButton({
   const isDisabled = Boolean(disabled) || loading;
 
   return (
-    <Button disabled={isDisabled} aria-busy={loading} {...props}>
+    <Button $fullWidth={fullWidth} disabled={isDisabled} aria-busy={loading} {...props}>
       {loading ? <InlineSpinner /> : null}
       {children}
     </Button>

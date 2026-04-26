@@ -98,6 +98,11 @@ describe('ExamSchedulingCalendarSection', () => {
       description: null,
       durationMinutes: 30,
       priceCents: 10000,
+      availableWeekdays: [1, 2, 3, 4, 5],
+      availableStartTime: '07:00',
+      availableEndTime: '19:00',
+      availableFromDate: null,
+      availableToDate: null,
     });
     (listAppointmentAvailability as jest.Mock).mockResolvedValue([]);
   });
@@ -169,7 +174,10 @@ describe('ExamSchedulingCalendarSection', () => {
 
     fireEvent.click(screen.getByText('selecionar-slot'));
 
-    expect(publishMock).toHaveBeenCalledWith('error', 'Selecione um horário entre 07:00 e 19:00.');
+    expect(publishMock).toHaveBeenCalledWith(
+      'error',
+      'Selecione um horário dentro da disponibilidade do exame.',
+    );
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
