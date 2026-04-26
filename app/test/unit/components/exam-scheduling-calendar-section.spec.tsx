@@ -208,6 +208,23 @@ describe('ExamSchedulingCalendarSection', () => {
     expect(pushMock).toHaveBeenCalledWith('/app/appointments');
   });
 
+  it('closes confirmation modal when cancel is clicked', async () => {
+    render(<ExamSchedulingCalendarSection examId="exam-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText('selecionar-slot')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('selecionar-slot'));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+  });
+
   it('selects first available slot when clicking a day in month view', async () => {
     (createAppointment as jest.Mock).mockResolvedValue({
       id: 'appointment-1',
@@ -293,5 +310,36 @@ describe('ExamSchedulingCalendarSection', () => {
 
     expect(screen.getByText('Agendamento')).toBeInTheDocument();
     expect(screen.queryByText('Carregando dados do exame...')).not.toBeInTheDocument();
+  });
+
+  it('renders not-found state when exam cannot be loaded', async () => {
+    (getExamById as jest.Mock).mockResolvedValueOnce(null);
+
+    render(<ExamSchedulingCalendarSection examId="exam-missing" />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Não foi possível carregar o exame informado.')).toBeInTheDocument();
+    });
+  });
+
+  it('renders availability period summary when exam has date bounds', async () => {
+    (getExamById as jest.Mock).mockResolvedValueOnce({
+      id: 'exam-1',
+      name: 'Hemograma',
+      description: null,
+      durationMinutes: 30,
+      priceCents: 10000,
+      availableWeekdays: [1, 2, 3, 4, 5],
+      availableStartTime: '07:00',
+      availableEndTime: '19:00',
+      availableFromDate: '2099-01-01',
+      availableToDate: '2099-12-31',
+    });
+
+    render(<ExamSchedulingCalendarSection examId="exam-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Período:/)).toBeInTheDocument();
+    });
   });
 });

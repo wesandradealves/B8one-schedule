@@ -375,4 +375,122 @@ describe('useUsersList', () => {
 
     expect(exportUsersCsv).toHaveBeenCalledTimes(1);
   });
+
+  it('should publish error when list users fails', async () => {
+    (listUsers as jest.Mock).mockRejectedValueOnce(new Error('users list failure'));
+
+    const { result } = renderHook(() => useUsersList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(publishMock).toHaveBeenCalledWith('error', 'users list failure');
+  });
+
+  it('should ignore edit field updates when no active edit form', async () => {
+    const { result } = renderHook(() => useUsersList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.setEditField('fullName', 'Sem edição');
+    });
+
+    expect(result.current.editForm).toBeNull();
+  });
+
+  it('should no-op save and delete when user cannot manage users', async () => {
+    useRolePermissionsMock.mockReturnValue({
+      isAdmin: false,
+      canManageExams: false,
+      canManageAppointments: false,
+      canManageUsers: false,
+    });
+
+    const { result } = renderHook(() => useUsersList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.saveEdit();
+      await result.current.deleteUser('user-1');
+    });
+
+    expect(updateUserById).not.toHaveBeenCalled();
+    expect(deleteUserById).not.toHaveBeenCalled();
+  });
+
+  it('should no-op save when no editing state exists', async () => {
+    const { result } = renderHook(() => useUsersList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.saveEdit();
+    });
+
+    expect(updateUserById).not.toHaveBeenCalled();
+  });
+
+  it('should publish error when save user fails', async () => {
+    (updateUserById as jest.Mock).mockRejectedValueOnce(new Error('save user failure'));
+
+    const { result } = renderHook(() => useUsersList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.startEdit(result.current.users[0]);
+      result.current.setEditField('fullName', 'Cliente Atualizado');
+      result.current.setEditField('email', 'cliente@b8one.com');
+    });
+
+    await act(async () => {
+      await result.current.saveEdit();
+    });
+
+    expect(publishMock).toHaveBeenCalledWith('error', 'save user failure');
+  });
+
+  it('should reload current page after delete when page still has items', async () => {
+    (deleteUserById as jest.Mock).mockResolvedValueOnce(undefined);
+
+    const { result } = renderHook(() => useUsersList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.deleteUser('user-1');
+    });
+
+    expect(deleteUserById).toHaveBeenCalledWith('user-1');
+    expect(listUsers).toHaveBeenCalledTimes(2);
+  });
+
+  it('should publish error when delete user fails', async () => {
+    (deleteUserById as jest.Mock).mockRejectedValueOnce(new Error('delete user failure'));
+
+    const { result } = renderHook(() => useUsersList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.deleteUser('user-1');
+    });
+
+    expect(publishMock).toHaveBeenCalledWith('error', 'delete user failure');
+  });
 });

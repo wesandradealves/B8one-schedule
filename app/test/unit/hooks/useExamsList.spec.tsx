@@ -326,4 +326,144 @@ describe('useExamsList', () => {
 
     expect(exportExamsCsv).toHaveBeenCalledTimes(1);
   });
+
+  it('should publish error when list exams fails', async () => {
+    (listExams as jest.Mock).mockRejectedValueOnce(new Error('exams list failure'));
+
+    const { result } = renderHook(() => useExamsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(publishMock).toHaveBeenCalledWith('error', 'exams list failure');
+  });
+
+  it('should ignore edit field updates when no edit is active', async () => {
+    const { result } = renderHook(() => useExamsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.setEditField('name', 'Sem edição');
+    });
+
+    expect(result.current.editForm).toBeNull();
+  });
+
+  it('should no-op save and delete when user cannot manage exams', async () => {
+    useRolePermissionsMock.mockReturnValue({
+      isAdmin: false,
+      canManageExams: false,
+      canManageAppointments: false,
+      canManageUsers: false,
+    });
+
+    const { result } = renderHook(() => useExamsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.saveEdit();
+      await result.current.deleteExam('exam-1');
+    });
+
+    expect(updateExamById).not.toHaveBeenCalled();
+    expect(deleteExamById).not.toHaveBeenCalled();
+  });
+
+  it('should no-op save when there is no active edit', async () => {
+    const { result } = renderHook(() => useExamsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.saveEdit();
+    });
+
+    expect(updateExamById).not.toHaveBeenCalled();
+  });
+
+  it('should validate invalid duration before saving', async () => {
+    const { result } = renderHook(() => useExamsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.startEdit(result.current.exams[0]);
+      result.current.setEditField('durationMinutes', '0');
+      result.current.setEditField('name', 'Hemograma');
+      result.current.setEditField('priceCents', '1000');
+    });
+
+    await act(async () => {
+      await result.current.saveEdit();
+    });
+
+    expect(publishMock).toHaveBeenCalledWith('error', 'Informe uma duração válida em minutos.');
+  });
+
+  it('should publish error when save exam fails', async () => {
+    (updateExamById as jest.Mock).mockRejectedValueOnce(new Error('save exam failure'));
+
+    const { result } = renderHook(() => useExamsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.startEdit(result.current.exams[0]);
+      result.current.setEditField('name', 'Hemograma');
+      result.current.setEditField('durationMinutes', '30');
+      result.current.setEditField('priceCents', '1000');
+    });
+
+    await act(async () => {
+      await result.current.saveEdit();
+    });
+
+    expect(publishMock).toHaveBeenCalledWith('error', 'save exam failure');
+  });
+
+  it('should reload current page after delete when still on same page', async () => {
+    (deleteExamById as jest.Mock).mockResolvedValueOnce(undefined);
+
+    const { result } = renderHook(() => useExamsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.deleteExam('exam-1');
+    });
+
+    expect(deleteExamById).toHaveBeenCalledWith('exam-1');
+    expect(listExams).toHaveBeenCalledTimes(2);
+  });
+
+  it('should publish error when delete exam fails', async () => {
+    (deleteExamById as jest.Mock).mockRejectedValueOnce(new Error('delete exam failure'));
+
+    const { result } = renderHook(() => useExamsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.deleteExam('exam-1');
+    });
+
+    expect(publishMock).toHaveBeenCalledWith('error', 'delete exam failure');
+  });
 });

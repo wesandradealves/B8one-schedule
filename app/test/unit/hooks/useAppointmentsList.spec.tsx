@@ -392,6 +392,198 @@ describe('useAppointmentsList', () => {
     expect(exportAppointmentsCsv).toHaveBeenCalledTimes(1);
   });
 
+  it('should publish error when list fetch fails', async () => {
+    (listAppointments as jest.Mock).mockRejectedValueOnce(new Error('list failure'));
+
+    const { result } = renderHook(() => useAppointmentsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(publishMock).toHaveBeenCalledWith('error', 'list failure');
+  });
+
+  it('should block edit when appointment is pending approval', async () => {
+    const { result } = renderHook(() => useAppointmentsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.startEdit({
+        ...result.current.appointments[0],
+        status: 'PENDING',
+      });
+    });
+
+    expect(result.current.editingAppointmentId).toBeNull();
+    expect(publishMock).toHaveBeenCalledWith(
+      'error',
+      'Aprovação pendente: use as ações de aprovar ou rejeitar.',
+    );
+  });
+
+  it('should ignore edit field updates when no edit form is active', async () => {
+    const { result } = renderHook(() => useAppointmentsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.setEditField('notes', 'sem edicao');
+    });
+
+    expect(result.current.editForm).toBeNull();
+  });
+
+  it('should no-op save and approve when user has no management permission', async () => {
+    useRolePermissionsMock.mockReturnValue({
+      isAdmin: false,
+      canManageExams: false,
+      canManageAppointments: false,
+      canCancelAppointments: true,
+      canManageUsers: false,
+    });
+
+    const { result } = renderHook(() => useAppointmentsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.saveEdit();
+      await result.current.approveAppointment('appt-1');
+    });
+
+    expect(updateAppointmentById).not.toHaveBeenCalled();
+  });
+
+  it('should no-op save when there is no editing state', async () => {
+    const { result } = renderHook(() => useAppointmentsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.saveEdit();
+    });
+
+    expect(updateAppointmentById).not.toHaveBeenCalled();
+  });
+
+  it('should publish error when save edit fails', async () => {
+    (updateAppointmentById as jest.Mock).mockRejectedValueOnce(new Error('save failure'));
+
+    const { result } = renderHook(() => useAppointmentsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.startEdit(result.current.appointments[0]);
+      result.current.setEditField('scheduledAt', '2099-01-01T11:00');
+    });
+
+    await act(async () => {
+      await result.current.saveEdit();
+    });
+
+    expect(publishMock).toHaveBeenCalledWith('error', 'save failure');
+  });
+
+  it('should reload current page after delete when page still has items', async () => {
+    (deleteAppointmentById as jest.Mock).mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useAppointmentsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.deleteAppointment('appt-1');
+    });
+
+    expect(deleteAppointmentById).toHaveBeenCalledWith('appt-1');
+    expect(listAppointments).toHaveBeenCalledTimes(2);
+  });
+
+  it('should publish error when delete appointment fails', async () => {
+    (deleteAppointmentById as jest.Mock).mockRejectedValueOnce(new Error('delete failure'));
+
+    const { result } = renderHook(() => useAppointmentsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.deleteAppointment('appt-1');
+    });
+
+    expect(publishMock).toHaveBeenCalledWith('error', 'delete failure');
+  });
+
+  it('should no-op cancel when user cannot cancel appointments', async () => {
+    useRolePermissionsMock.mockReturnValue({
+      isAdmin: false,
+      canManageExams: false,
+      canManageAppointments: false,
+      canCancelAppointments: false,
+      canManageUsers: false,
+    });
+
+    const { result } = renderHook(() => useAppointmentsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.cancelAppointment('appt-1');
+    });
+
+    expect(cancelAppointmentById).not.toHaveBeenCalled();
+  });
+
+  it('should publish error when cancel appointment fails', async () => {
+    (cancelAppointmentById as jest.Mock).mockRejectedValueOnce(new Error('cancel failure'));
+
+    const { result } = renderHook(() => useAppointmentsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.cancelAppointment('appt-1');
+    });
+
+    expect(publishMock).toHaveBeenCalledWith('error', 'cancel failure');
+  });
+
+  it('should publish error when approval fails', async () => {
+    (updateAppointmentById as jest.Mock).mockRejectedValueOnce(new Error('approve failure'));
+
+    const { result } = renderHook(() => useAppointmentsList());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.approveAppointment('appt-1');
+    });
+
+    expect(publishMock).toHaveBeenCalledWith('error', 'approve failure');
+  });
+
   it('should approve pending appointment and refresh current page', async () => {
     (updateAppointmentById as jest.Mock).mockResolvedValue({
       id: 'appt-1',

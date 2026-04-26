@@ -102,4 +102,65 @@ describe('useEmailConfirmation', () => {
 
     expect(pushMock).toHaveBeenCalledWith('/login');
   });
+
+  it('should avoid reprocessing the same token on rerender', async () => {
+    searchParamGetMock.mockReturnValue('token-repeat');
+    (verifyEmailConfirmation as jest.Mock).mockResolvedValue({
+      message: 'ok',
+    });
+
+    const { rerender } = renderHook(() => useEmailConfirmation());
+
+    await waitFor(() => {
+      expect(verifyEmailConfirmation).toHaveBeenCalledTimes(1);
+    });
+
+    rerender();
+
+    await waitFor(() => {
+      expect(verifyEmailConfirmation).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('should not publish after unmount when confirmation resolves later', async () => {
+    searchParamGetMock.mockReturnValue('token-late-success');
+    let resolvePromise: ((value: { message: string }) => void) | null = null;
+    (verifyEmailConfirmation as jest.Mock).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolvePromise = resolve;
+        }),
+    );
+
+    const { unmount } = renderHook(() => useEmailConfirmation());
+    unmount();
+
+    await act(async () => {
+      resolvePromise?.({ message: 'late success' });
+      await Promise.resolve();
+    });
+
+    expect(publishMock).not.toHaveBeenCalled();
+  });
+
+  it('should not publish after unmount when confirmation rejects later', async () => {
+    searchParamGetMock.mockReturnValue('token-late-error');
+    let rejectPromise: ((error: Error) => void) | null = null;
+    (verifyEmailConfirmation as jest.Mock).mockImplementation(
+      () =>
+        new Promise((_, reject) => {
+          rejectPromise = reject;
+        }),
+    );
+
+    const { unmount } = renderHook(() => useEmailConfirmation());
+    unmount();
+
+    await act(async () => {
+      rejectPromise?.(new Error('late error'));
+      await Promise.resolve();
+    });
+
+    expect(publishMock).not.toHaveBeenCalled();
+  });
 });
