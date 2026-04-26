@@ -1,6 +1,10 @@
 import { AppointmentStatus } from '@/domain/commons/enums/appointment-status.enum';
 import { CsvImportResult } from '@/domain/commons/interfaces/csv.interface';
 import {
+  isScheduledAtWithinExamAvailability,
+  normalizeExamAvailability,
+} from '@/domain/commons/utils/exam-availability.util';
+import {
   getOptionalCsvValue,
   getRequiredCsvValue,
   parseCsvDate,
@@ -126,6 +130,19 @@ export class ImportAppointmentsCsvUseCase implements IImportAppointmentsCsvUseCa
     if (isActiveStatus && scheduledAt.getTime() <= Date.now()) {
       throw new Error(
         `Row ${rowNumber}: "scheduledAt" must be in the future for active appointments`,
+      );
+    }
+
+    if (
+      isActiveStatus &&
+      !isScheduledAtWithinExamAvailability(
+        scheduledAt,
+        exam.durationMinutes,
+        normalizeExamAvailability(exam),
+      )
+    ) {
+      throw new Error(
+        `Row ${rowNumber}: "scheduledAt" is outside exam availability`,
       );
     }
 

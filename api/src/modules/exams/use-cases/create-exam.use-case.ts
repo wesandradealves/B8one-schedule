@@ -1,4 +1,8 @@
 import { bumpExamsListCacheVersion } from '@/domain/commons/utils/exam-cache.util';
+import {
+  normalizeExamAvailability,
+  validateExamAvailability,
+} from '@/domain/commons/utils/exam-availability.util';
 import { ICacheProvider } from '@/domain/interfaces/providers/cache.provider';
 import { IExamRepository } from '@/domain/interfaces/repositories/exam.repository';
 import { assertAdmin } from '@/domain/commons/utils/profile-authorization.util';
@@ -30,11 +34,21 @@ export class CreateExamUseCase implements ICreateExamUseCase {
       throw new BadRequestException('Price cannot be negative');
     }
 
+    const availability = normalizeExamAvailability({
+      availableWeekdays: input.availableWeekdays,
+      availableStartTime: input.availableStartTime,
+      availableEndTime: input.availableEndTime,
+      availableFromDate: input.availableFromDate,
+      availableToDate: input.availableToDate,
+    });
+    validateExamAvailability(availability);
+
     const exam = await this.examRepository.createExam({
       name: input.name,
       description: input.description ?? null,
       durationMinutes: input.durationMinutes,
       priceCents: input.priceCents,
+      ...availability,
     });
 
     await bumpExamsListCacheVersion(this.cacheProvider);

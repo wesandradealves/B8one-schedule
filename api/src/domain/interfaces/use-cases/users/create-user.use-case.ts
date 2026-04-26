@@ -8,7 +8,6 @@ export interface CreateUserUseCaseInput {
   email: string;
   password: string;
   profile: UserProfile;
-  isActive?: boolean;
 }
 
 export interface ICreateUserUseCase {

@@ -139,7 +139,17 @@ export class ExamsController {
   async create(
     @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodValidationPipe(createExamSchema))
-    payload: { name: string; description?: string | null; durationMinutes: number; priceCents: number },
+    payload: {
+      name: string;
+      description?: string | null;
+      durationMinutes: number;
+      priceCents: number;
+      availableWeekdays?: number[];
+      availableStartTime?: string;
+      availableEndTime?: string;
+      availableFromDate?: string | null;
+      availableToDate?: string | null;
+    },
   ): Promise<ExamResponseDto> {
     const exam = await this.createExamUseCase.execute({
       user,
@@ -190,6 +200,11 @@ export class ExamsController {
       description?: string | null;
       durationMinutes?: number;
       priceCents?: number;
+      availableWeekdays?: number[];
+      availableStartTime?: string;
+      availableEndTime?: string;
+      availableFromDate?: string | null;
+      availableToDate?: string | null;
       isActive?: boolean;
     },
   ): Promise<ExamResponseDto> {
@@ -226,6 +241,11 @@ export class ExamsController {
       description: exam.description,
       durationMinutes: exam.durationMinutes,
       priceCents: exam.priceCents,
+      availableWeekdays: exam.availableWeekdays,
+      availableStartTime: exam.availableStartTime,
+      availableEndTime: exam.availableEndTime,
+      availableFromDate: exam.availableFromDate ?? null,
+      availableToDate: exam.availableToDate ?? null,
     };
   }
 }

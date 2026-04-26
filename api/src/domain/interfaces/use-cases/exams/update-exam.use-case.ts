@@ -8,6 +8,11 @@ export interface UpdateExamUseCaseInput {
   description?: string | null;
   durationMinutes?: number;
   priceCents?: number;
+  availableWeekdays?: number[];
+  availableStartTime?: string;
+  availableEndTime?: string;
+  availableFromDate?: string | null;
+  availableToDate?: string | null;
   isActive?: boolean;
 }
 

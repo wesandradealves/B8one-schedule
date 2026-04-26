@@ -1,4 +1,8 @@
 import { bumpExamsListCacheVersion } from '@/domain/commons/utils/exam-cache.util';
+import {
+  normalizeExamAvailability,
+  validateExamAvailability,
+} from '@/domain/commons/utils/exam-availability.util';
 import { ICacheProvider } from '@/domain/interfaces/providers/cache.provider';
 import { IExamRepository } from '@/domain/interfaces/repositories/exam.repository';
 import { assertAdmin } from '@/domain/commons/utils/profile-authorization.util';
@@ -28,6 +32,11 @@ export class UpdateExamUseCase implements IUpdateExamUseCase {
   async execute(input: UpdateExamUseCaseInput) {
     assertAdmin(input.user, 'Only admin users can update exams');
 
+    const existingExam = await this.examRepository.findAnyById(input.id);
+    if (!existingExam) {
+      throw new NotFoundException('Exam not found');
+    }
+
     if (input.durationMinutes !== undefined && input.durationMinutes <= 0) {
       throw new BadRequestException('Duration must be greater than zero');
     }
@@ -35,11 +44,27 @@ export class UpdateExamUseCase implements IUpdateExamUseCase {
       throw new BadRequestException('Price cannot be negative');
     }
 
+    const availability = normalizeExamAvailability({
+      availableWeekdays: input.availableWeekdays ?? existingExam.availableWeekdays,
+      availableStartTime: input.availableStartTime ?? existingExam.availableStartTime,
+      availableEndTime: input.availableEndTime ?? existingExam.availableEndTime,
+      availableFromDate:
+        input.availableFromDate !== undefined
+          ? input.availableFromDate
+          : existingExam.availableFromDate,
+      availableToDate:
+        input.availableToDate !== undefined
+          ? input.availableToDate
+          : existingExam.availableToDate,
+    });
+    validateExamAvailability(availability);
+
     const updated = await this.examRepository.updateExam(input.id, {
       name: input.name,
       description: input.description,
       durationMinutes: input.durationMinutes,
       priceCents: input.priceCents,
+      ...availability,
       isActive: input.isActive,
     });
 

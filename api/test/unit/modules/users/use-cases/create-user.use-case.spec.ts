@@ -1,8 +1,11 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { CreateUserUseCase } from '@/modules/users/use-cases/create-user.use-case';
 import { IUserRepository } from '@/domain/interfaces/repositories/user.repository';
 import { IHashProvider } from '@/domain/interfaces/providers/hash.provider';
 import { IMessagingProvider } from '@/domain/interfaces/providers/messaging.provider';
+import { IAuthRepository } from '@/domain/interfaces/repositories/auth.repository';
+import { IEmailProvider } from '@/domain/interfaces/providers/email.provider';
 import { UserProfile } from '@/domain/commons/enums/user-profile.enum';
 import {
   makeAuthenticatedUser,
@@ -13,7 +16,10 @@ type Sut = {
   useCase: CreateUserUseCase;
   userRepository: jest.Mocked<IUserRepository>;
   hashProvider: jest.Mocked<IHashProvider>;
+  authRepository: jest.Mocked<IAuthRepository>;
+  emailProvider: jest.Mocked<IEmailProvider>;
   messagingProvider: jest.Mocked<IMessagingProvider>;
+  configService: jest.Mocked<ConfigService>;
 };
 
 function createSut(): Sut {
@@ -32,13 +38,51 @@ function createSut(): Sut {
     compare: jest.fn(),
   };
 
+  const authRepository: jest.Mocked<IAuthRepository> = {
+    upsertTwoFactorCode: jest.fn(),
+    findValidTwoFactorCode: jest.fn(),
+    invalidateTwoFactorCode: jest.fn(),
+    upsertEmailConfirmationToken: jest.fn(),
+    findValidEmailConfirmationToken: jest.fn(),
+    invalidateEmailConfirmationToken: jest.fn(),
+  };
+
+  const emailProvider: jest.Mocked<IEmailProvider> = {
+    send: jest.fn(),
+  };
+
   const messagingProvider: jest.Mocked<IMessagingProvider> = {
     publish: jest.fn(),
   };
 
-  const useCase = new CreateUserUseCase(userRepository, hashProvider, messagingProvider);
+  const configService = {
+    get: jest.fn((key: string, defaultValue?: unknown) => {
+      if (key === 'auth.emailConfirmation.expirationHours') return 48;
+      if (key === 'application.frontendBaseUrl') return 'http://localhost:3001';
+      if (key === 'email.smtp.host') return 'smtp.ethereal.email';
+      if (key === 'env') return 'development';
+      return defaultValue;
+    }),
+  } as unknown as jest.Mocked<ConfigService>;
 
-  return { useCase, userRepository, hashProvider, messagingProvider };
+  const useCase = new CreateUserUseCase(
+    userRepository,
+    hashProvider,
+    authRepository,
+    emailProvider,
+    messagingProvider,
+    configService,
+  );
+
+  return {
+    useCase,
+    userRepository,
+    hashProvider,
+    authRepository,
+    emailProvider,
+    messagingProvider,
+    configService,
+  };
 }
 
 describe('CreateUserUseCase', () => {
@@ -73,15 +117,25 @@ describe('CreateUserUseCase', () => {
     ).rejects.toThrow(new BadRequestException('E-mail already in use'));
   });
 
-  it('hashes password, creates user and publishes event', async () => {
-    const { useCase, userRepository, hashProvider, messagingProvider } = createSut();
+  it('creates inactive user and sends e-mail confirmation link', async () => {
+    const {
+      useCase,
+      userRepository,
+      hashProvider,
+      authRepository,
+      emailProvider,
+      messagingProvider,
+    } = createSut();
+
     userRepository.existsByEmail.mockResolvedValue(false);
     hashProvider.hash.mockResolvedValue('hashed-password');
     userRepository.createUser.mockResolvedValue(
       makeUserEntity({
         id: 'new-user-id',
+        fullName: 'New User',
         email: 'new@b8one.com',
         profile: UserProfile.CLIENT,
+        isActive: false,
       }),
     );
 
@@ -99,14 +153,40 @@ describe('CreateUserUseCase', () => {
       email: 'new@b8one.com',
       passwordHash: 'hashed-password',
       profile: UserProfile.CLIENT,
-      isActive: true,
+      isActive: false,
     });
+
+    expect(authRepository.upsertEmailConfirmationToken).toHaveBeenCalledWith(
+      'new-user-id',
+      expect.any(String),
+      expect.any(Date),
+    );
+
+    expect(emailProvider.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: 'new@b8one.com',
+        subject: 'Confirme seu e-mail para ativar sua conta',
+        html: expect.stringContaining('/confirm-email?token='),
+      }),
+    );
+
     expect(messagingProvider.publish).toHaveBeenCalledWith('users.created', {
       userId: 'new-user-id',
       email: 'new@b8one.com',
       profile: UserProfile.CLIENT,
+      isActive: false,
     });
 
+    expect(messagingProvider.publish).toHaveBeenCalledWith(
+      'auth.email-confirmation.requested',
+      {
+        userId: 'new-user-id',
+        email: 'new@b8one.com',
+        expiresAt: expect.any(String),
+      },
+    );
+
     expect(output.id).toBe('new-user-id');
+    expect(output.isActive).toBe(false);
   });
 });

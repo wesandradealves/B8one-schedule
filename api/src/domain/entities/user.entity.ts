@@ -1,4 +1,5 @@
 import { AppointmentEntity } from '@/domain/entities/appointment.entity';
+import { AuthEmailConfirmationEntity } from '@/domain/entities/auth.email-confirmation.entity';
 import { AuthTwoFactorEntity } from '@/domain/entities/auth.two-factor.entity';
 import { BaseEntity } from '@/domain/entities/commons/base.entity';
 import { UserProfile } from '@/domain/commons/enums/user-profile.enum';
@@ -34,6 +35,12 @@ export class UserEntity extends BaseEntity {
 
   @OneToMany(() => AuthTwoFactorEntity, (twoFactor) => twoFactor.user)
   twoFactorCodes: AuthTwoFactorEntity[];
+
+  @OneToMany(
+    () => AuthEmailConfirmationEntity,
+    (confirmationToken) => confirmationToken.user,
+  )
+  emailConfirmationTokens: AuthEmailConfirmationEntity[];
 
   @OneToMany(() => AppointmentEntity, (appointment) => appointment.user)
   appointments: AppointmentEntity[];

@@ -4,6 +4,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   HTTP_PORT: z.coerce.number().int().positive().default(3000),
   API_PREFIX: z.string().default(''),
+  FRONTEND_BASE_URL: z.string().url().default('http://localhost:3001'),
 
   DATABASE_HOST: z.string().default('postgres'),
   DATABASE_PORT: z.coerce.number().int().positive().default(5432),
@@ -24,6 +25,7 @@ const envSchema = z.object({
   JWT_ACCESS_TOKEN_EXPIRES_SECONDS: z.coerce.number().int().positive().default(3600),
 
   TWO_FA_CODE_EXPIRATION_MINUTES: z.coerce.number().int().positive().default(10),
+  EMAIL_CONFIRMATION_EXPIRATION_HOURS: z.coerce.number().int().positive().default(48),
 
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().positive().default(587),
@@ -44,6 +46,7 @@ const AppConfig = () => {
     application: {
       port: env.HTTP_PORT,
       apiPrefix: env.API_PREFIX,
+      frontendBaseUrl: env.FRONTEND_BASE_URL,
     },
     database: {
       host: env.DATABASE_HOST,
@@ -66,6 +69,9 @@ const AppConfig = () => {
       },
       twoFactor: {
         expirationMinutes: env.TWO_FA_CODE_EXPIRATION_MINUTES,
+      },
+      emailConfirmation: {
+        expirationHours: env.EMAIL_CONFIRMATION_EXPIRATION_HOURS,
       },
     },
     email: {

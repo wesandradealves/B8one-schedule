@@ -34,6 +34,9 @@ function createSut(): Sut {
     upsertTwoFactorCode: jest.fn(),
     findValidTwoFactorCode: jest.fn(),
     invalidateTwoFactorCode: jest.fn(),
+    upsertEmailConfirmationToken: jest.fn(),
+    findValidEmailConfirmationToken: jest.fn(),
+    invalidateEmailConfirmationToken: jest.fn(),
   };
 
   const hashProvider: jest.Mocked<IHashProvider> = {
@@ -158,4 +161,3 @@ describe('ResetPasswordUseCase', () => {
     });
   });
 });
-

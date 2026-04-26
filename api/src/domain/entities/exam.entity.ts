@@ -20,6 +20,25 @@ export class ExamEntity extends BaseEntity {
   @Column({ name: 'price_cents', type: 'int' })
   priceCents: number;
 
+  @Column({
+    name: 'available_weekdays',
+    type: 'jsonb',
+    default: () => "'[1,2,3,4,5]'::jsonb",
+  })
+  availableWeekdays: number[];
+
+  @Column({ name: 'available_start_time', type: 'varchar', length: 5, default: '07:00' })
+  availableStartTime: string;
+
+  @Column({ name: 'available_end_time', type: 'varchar', length: 5, default: '19:00' })
+  availableEndTime: string;
+
+  @Column({ name: 'available_from_date', type: 'date', nullable: true })
+  availableFromDate?: string | null;
+
+  @Column({ name: 'available_to_date', type: 'date', nullable: true })
+  availableToDate?: string | null;
+
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 

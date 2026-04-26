@@ -7,6 +7,11 @@ export interface CreateExamUseCaseInput {
   description?: string | null;
   durationMinutes: number;
   priceCents: number;
+  availableWeekdays?: number[];
+  availableStartTime?: string;
+  availableEndTime?: string;
+  availableFromDate?: string | null;
+  availableToDate?: string | null;
 }
 
 export interface ICreateExamUseCase {

@@ -16,6 +16,30 @@ import {
   makeExamEntity,
 } from '../../../helpers/factories';
 
+const makeFutureSchedule = (): Date => {
+  const value = new Date();
+  value.setDate(value.getDate() + 1);
+  value.setHours(10, 0, 0, 0);
+  return value;
+};
+
+const makeFutureWeekdaySchedule = (
+  weekday: number,
+  hours: number,
+  minutes = 0,
+): Date => {
+  const value = new Date();
+  const dayOffset = (weekday - value.getDay() + 7) % 7;
+  value.setDate(value.getDate() + dayOffset);
+  value.setHours(hours, minutes, 0, 0);
+
+  if (value.getTime() <= Date.now()) {
+    value.setDate(value.getDate() + 7);
+  }
+
+  return value;
+};
+
 type Sut = {
   useCase: CreateAppointmentUseCase;
   appointmentRepository: jest.Mocked<IAppointmentRepository>;
@@ -83,7 +107,7 @@ describe('CreateAppointmentUseCase', () => {
       useCase.execute({
         user: makeAuthenticatedUser({ id: 'user-id-1', profile: UserProfile.CLIENT }),
         examId: 'exam-id-1',
-        scheduledAt: new Date(Date.now() + 60_000),
+        scheduledAt: makeFutureSchedule(),
       }),
     ).rejects.toThrow(new NotFoundException('Exam not found'));
   });
@@ -99,10 +123,33 @@ describe('CreateAppointmentUseCase', () => {
       useCase.execute({
         user: makeAuthenticatedUser({ id: 'user-id-1', profile: UserProfile.CLIENT }),
         examId: 'exam-id-1',
-        scheduledAt: new Date(Date.now() + 60_000),
+        scheduledAt: makeFutureSchedule(),
       }),
     ).rejects.toThrow(
       new ConflictException('There is already an appointment for this exam/time slot'),
+    );
+  });
+
+  it('throws BadRequestException when scheduled date is outside exam availability', async () => {
+    const { useCase, examRepository, appointmentRepository } = createSut();
+    examRepository.findById.mockResolvedValue(
+      makeExamEntity({
+        id: 'exam-id-1',
+        availableWeekdays: [1],
+        availableStartTime: '09:00',
+        availableEndTime: '10:00',
+      }),
+    );
+    appointmentRepository.findExamScheduleConflict.mockResolvedValue(null);
+
+    await expect(
+      useCase.execute({
+        user: makeAuthenticatedUser({ id: 'user-id-1', profile: UserProfile.CLIENT }),
+        examId: 'exam-id-1',
+        scheduledAt: makeFutureWeekdaySchedule(2, 11, 0),
+      }),
+    ).rejects.toThrow(
+      new BadRequestException('Scheduled date is outside exam availability'),
     );
   });
 
@@ -120,7 +167,7 @@ describe('CreateAppointmentUseCase', () => {
       }),
     );
 
-    const scheduledAt = new Date(Date.now() + 120_000);
+    const scheduledAt = makeFutureSchedule();
     const output = await useCase.execute({
       user: makeAuthenticatedUser({ id: 'user-id-1', profile: UserProfile.CLIENT }),
       examId: 'exam-id-1',
@@ -161,7 +208,7 @@ describe('CreateAppointmentUseCase', () => {
       }),
     );
 
-    const scheduledAt = new Date(Date.now() + 120_000);
+    const scheduledAt = makeFutureSchedule();
     await useCase.execute({
       user: makeAuthenticatedUser({ id: 'admin-id', profile: UserProfile.ADMIN }),
       examId: 'exam-id-1',

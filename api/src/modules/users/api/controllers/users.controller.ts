@@ -115,7 +115,10 @@ export class UsersController {
 
   @Post()
   @Permissions(Permission.USERS_CREATE)
-  @ApiOperation({ summary: 'Create user (admin only)' })
+  @ApiOperation({
+    summary:
+      'Create user (admin only, account starts inactive until e-mail confirmation)',
+  })
   @ApiBody({ type: CreateUserRequestDto })
   @ApiResponse({ status: 201, type: UserResponseDto })
   async create(
@@ -126,7 +129,6 @@ export class UsersController {
       email: string;
       password: string;
       profile: UserProfile;
-      isActive?: boolean;
     },
   ): Promise<UserResponseDto> {
     const createdUser = await this.createUserUseCase.execute({

@@ -2,6 +2,11 @@ import { ExamEntity } from '@/domain/entities/exam.entity';
 import { SortOrder } from '@/domain/commons/enums/sort-order.enum';
 import { ExamListSortBy } from '@/domain/commons/enums/exam-list-sort-by.enum';
 import {
+  DEFAULT_EXAM_AVAILABLE_END_TIME,
+  DEFAULT_EXAM_AVAILABLE_START_TIME,
+  DEFAULT_EXAM_AVAILABLE_WEEKDAYS,
+} from '@/domain/commons/utils/exam-availability.util';
+import {
   CreateExamInput,
   ExamPaginationQuery,
   IExamRepository,
@@ -90,6 +95,14 @@ export class ExamRepository implements IExamRepository {
         description: input.description ?? null,
         durationMinutes: input.durationMinutes,
         priceCents: input.priceCents,
+        availableWeekdays:
+          input.availableWeekdays ?? [...DEFAULT_EXAM_AVAILABLE_WEEKDAYS],
+        availableStartTime:
+          input.availableStartTime ?? DEFAULT_EXAM_AVAILABLE_START_TIME,
+        availableEndTime:
+          input.availableEndTime ?? DEFAULT_EXAM_AVAILABLE_END_TIME,
+        availableFromDate: input.availableFromDate ?? null,
+        availableToDate: input.availableToDate ?? null,
         isActive: true,
       })
       .returning('id')
@@ -117,6 +130,21 @@ export class ExamRepository implements IExamRepository {
     }
     if (input.priceCents !== undefined) {
       payload.priceCents = input.priceCents;
+    }
+    if (input.availableWeekdays !== undefined) {
+      payload.availableWeekdays = input.availableWeekdays;
+    }
+    if (input.availableStartTime !== undefined) {
+      payload.availableStartTime = input.availableStartTime;
+    }
+    if (input.availableEndTime !== undefined) {
+      payload.availableEndTime = input.availableEndTime;
+    }
+    if (input.availableFromDate !== undefined) {
+      payload.availableFromDate = input.availableFromDate;
+    }
+    if (input.availableToDate !== undefined) {
+      payload.availableToDate = input.availableToDate;
     }
     if (input.isActive !== undefined) {
       payload.isActive = input.isActive;
