@@ -438,12 +438,16 @@ describe('useExamSchedulingCalendar', () => {
 
     expect(result.current.eventPropGetter({ status: 'PENDING' }).style).toEqual(
       expect.objectContaining({
-        color: '#92400e',
+        background: 'var(--color-status-pending-bg)',
+        borderColor: 'var(--color-status-pending-border)',
+        color: 'var(--color-status-pending-fg)',
       }),
     );
     expect(result.current.eventPropGetter({ status: 'SCHEDULED' }).style).toEqual(
       expect.objectContaining({
-        color: '#1e40af',
+        background: 'var(--color-status-scheduled-bg)',
+        borderColor: 'var(--color-status-scheduled-border)',
+        color: 'var(--color-status-scheduled-fg)',
       }),
     );
 

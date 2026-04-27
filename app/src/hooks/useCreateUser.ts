@@ -7,6 +7,11 @@ import { useRolePermissions } from '@/hooks/useRolePermissions';
 import { createUser } from '@/services/users.service';
 import type { UserProfile } from '@/types/auth';
 import type { AuthFlowMessage } from '@/types/auth';
+import {
+  getUserEmailValidationError,
+  getUserFullNameValidationError,
+  normalizeEmail,
+} from '@/utils/form-validation';
 import { getRequestErrorMessage } from '@/utils/request';
 import { APP_ROUTES } from '@/utils/route';
 
@@ -63,13 +68,14 @@ export const useCreateUser = () => {
   const validate = useCallback((): CreateUserFieldErrors => {
     const errors: CreateUserFieldErrors = {};
 
-    if (form.fullName.trim().length < 3) {
-      errors.fullName = 'Informe o nome com ao menos 3 caracteres';
+    const fullNameError = getUserFullNameValidationError(form.fullName);
+    if (fullNameError) {
+      errors.fullName = fullNameError;
     }
 
-    const normalizedEmail = form.email.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      errors.email = 'Informe um e-mail válido';
+    const emailError = getUserEmailValidationError(form.email);
+    if (emailError) {
+      errors.email = emailError;
     }
 
     if (form.password.length < 6) {
@@ -125,7 +131,7 @@ export const useCreateUser = () => {
     try {
       await createUser({
         fullName: form.fullName.trim(),
-        email: form.email.trim().toLowerCase(),
+        email: normalizeEmail(form.email),
         password: form.password,
         profile: form.profile,
       });

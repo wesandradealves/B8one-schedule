@@ -129,7 +129,7 @@ describe('useCreateUser', () => {
     await waitFor(() => {
       expect(result.current.message?.level).toBe('error');
     });
-    expect(publishMock).toHaveBeenCalledWith('error', 'E-mail already in use');
+    expect(publishMock).toHaveBeenCalledWith('error', 'E-mail já está em uso.');
   });
 
   it('navigates back when cancel is called', () => {

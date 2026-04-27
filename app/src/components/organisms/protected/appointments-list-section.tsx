@@ -40,15 +40,22 @@ const FilterLabel = styled.label.attrs({
   color: var(--color-text-secondary);
 `;
 
-const StatusBadge = styled.span.attrs<{ $status: AppointmentStatus }>(({ $status }) => ({
-  className:
-    'inline-flex items-center justify-center rounded-full px-2 py-1 text-xs font-semibold ' +
-    ($status === 'PENDING'
-      ? 'bg-amber-100 text-amber-700'
+const StatusBadge = styled.span.attrs({
+  className: 'inline-flex items-center justify-center rounded-full px-2 py-1 text-xs font-semibold',
+})<{ $status: AppointmentStatus }>`
+  background: ${({ $status }) =>
+    $status === 'PENDING'
+      ? 'var(--color-status-pending-bg)'
       : $status === 'SCHEDULED'
-        ? 'bg-emerald-100 text-emerald-700'
-        : 'bg-slate-200 text-slate-700'),
-}))<{ $status: AppointmentStatus }>``;
+        ? 'var(--color-status-scheduled-bg)'
+        : 'var(--color-status-cancelled-bg)'};
+  color: ${({ $status }) =>
+    $status === 'PENDING'
+      ? 'var(--color-status-pending-fg)'
+      : $status === 'SCHEDULED'
+        ? 'var(--color-status-scheduled-fg)'
+        : 'var(--color-status-cancelled-fg)'};
+`;
 
 const sortOptions: Array<{ value: SortOrder; label: string }> = [
   { value: 'DESC', label: 'Decrescente' },

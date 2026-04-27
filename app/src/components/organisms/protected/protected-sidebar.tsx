@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import { AuthBrandLogo } from '@/components/atoms/auth-brand-logo';
 import { ProtectedNavItem } from '@/components/molecules/protected-nav-item';
 import { useProtectedNavigation } from '@/hooks/useProtectedNavigation';
+import { APP_ROUTES } from '@/utils/route';
 import { usePathname } from 'next/navigation';
 
 const SidebarRoot = styled.aside.attrs({
@@ -32,7 +33,7 @@ const isActiveRoute = (pathname: string | null, href: string): boolean => {
     return false;
   }
 
-  if (href === '/app') {
+  if (href === APP_ROUTES.app) {
     return pathname === href;
   }
 

@@ -48,7 +48,7 @@ describe('request utils', () => {
   });
 
   it('should fallback to generic error message for unknown values', () => {
-    expect(getRequestErrorMessage('oops')).toBe('Unexpected request error');
+    expect(getRequestErrorMessage('oops')).toBe('Erro inesperado na requisição.');
   });
 
   it('should return response data when request succeeds', async () => {
@@ -67,5 +67,19 @@ describe('request utils', () => {
         };
       }),
     ).rejects.toThrow('unauthorized');
+  });
+
+  it('should translate known backend messages to Portuguese', () => {
+    const error = {
+      isAxiosError: true,
+      message: 'fallback message',
+      response: {
+        data: {
+          message: 'Exam not found',
+        },
+      },
+    };
+
+    expect(getRequestErrorMessage(error)).toBe('Exame não encontrado.');
   });
 });

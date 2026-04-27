@@ -35,6 +35,87 @@ export const GlobalStyle = createGlobalStyle`
       ${({ theme }) => theme._colors.neutral[0]}
     );
     --color-card-icon-foreground: ${({ theme }) => theme._colors.primary[700]};
+    --color-status-pending-bg: color-mix(
+      in srgb,
+      ${({ theme }) => theme._colors.warning[500]} 16%,
+      ${({ theme }) => theme._colors.neutral[0]}
+    );
+    --color-status-pending-border: color-mix(
+      in srgb,
+      ${({ theme }) => theme._colors.warning[500]} 44%,
+      ${({ theme }) => theme._colors.neutral[300]}
+    );
+    --color-status-pending-fg: ${({ theme }) => theme._colors.warning[500]};
+    --color-status-scheduled-bg: color-mix(
+      in srgb,
+      ${({ theme }) => theme._colors.info[500]} 16%,
+      ${({ theme }) => theme._colors.neutral[0]}
+    );
+    --color-status-scheduled-border: color-mix(
+      in srgb,
+      ${({ theme }) => theme._colors.info[500]} 44%,
+      ${({ theme }) => theme._colors.neutral[300]}
+    );
+    --color-status-scheduled-fg: ${({ theme }) => theme._colors.info[500]};
+    --color-status-cancelled-bg: color-mix(
+      in srgb,
+      ${({ theme }) => theme._colors.neutral[500]} 18%,
+      ${({ theme }) => theme._colors.neutral[0]}
+    );
+    --color-status-cancelled-fg: ${({ theme }) => theme._colors.neutral[700]};
+    --color-slot-available-bg: color-mix(
+      in srgb,
+      ${({ theme }) => theme._colors.success[500]} 20%,
+      ${({ theme }) => theme._colors.neutral[0]}
+    );
+    --color-slot-available-bg-hover: color-mix(
+      in srgb,
+      ${({ theme }) => theme._colors.success[500]} 30%,
+      ${({ theme }) => theme._colors.neutral[0]}
+    );
+    --color-slot-available-bg-selected: color-mix(
+      in srgb,
+      ${({ theme }) => theme._colors.success[500]} 38%,
+      ${({ theme }) => theme._colors.neutral[0]}
+    );
+    --color-slot-available-outline: color-mix(
+      in srgb,
+      ${({ theme }) => theme._colors.success[500]} 40%,
+      ${({ theme }) => theme._colors.neutral[300]}
+    );
+    --color-slot-available-fg: ${({ theme }) => theme._colors.success[500]};
+    --color-slot-busy-bg: color-mix(
+      in srgb,
+      ${({ theme }) => theme._colors.neutral[500]} 26%,
+      ${({ theme }) => theme._colors.neutral[0]}
+    );
+    --color-slot-busy-stripe-strong: color-mix(
+      in srgb,
+      ${({ theme }) => theme._colors.neutral[500]} 18%,
+      transparent
+    );
+    --color-slot-busy-stripe-soft: color-mix(
+      in srgb,
+      ${({ theme }) => theme._colors.neutral[500]} 8%,
+      transparent
+    );
+    --color-slot-busy-fg: ${({ theme }) => theme._colors.neutral[700]};
+    --color-slot-unavailable-bg: color-mix(
+      in srgb,
+      ${({ theme }) => theme._colors.neutral[500]} 14%,
+      ${({ theme }) => theme._colors.neutral[0]}
+    );
+    --color-slot-unavailable-fg: ${({ theme }) => theme._colors.neutral[500]};
+    --color-calendar-focus-ring: color-mix(
+      in srgb,
+      ${({ theme }) => theme._colors.info[500]} 50%,
+      transparent
+    );
+    --color-calendar-focus-hover: color-mix(
+      in srgb,
+      ${({ theme }) => theme._colors.info[500]} 14%,
+      transparent
+    );
   }
 
   body {

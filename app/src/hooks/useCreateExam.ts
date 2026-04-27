@@ -14,6 +14,11 @@ import {
   normalizeExamAvailability,
   validateExamAvailability,
 } from '@/utils/exam-availability';
+import {
+  getExamDurationValidationError,
+  getExamNameValidationError,
+  getExamPriceValidationError,
+} from '@/utils/form-validation';
 import { getRequestErrorMessage } from '@/utils/request';
 import { APP_ROUTES } from '@/utils/route';
 
@@ -107,16 +112,19 @@ export const useCreateExam = () => {
     const durationMinutes = Number(form.durationMinutes);
     const priceCents = Number(form.priceCents);
 
-    if (form.name.trim().length < 2) {
-      errors.name = 'Informe o nome do exame com ao menos 2 caracteres';
+    const nameError = getExamNameValidationError(form.name);
+    if (nameError) {
+      errors.name = nameError;
     }
 
-    if (!Number.isInteger(durationMinutes) || durationMinutes <= 0) {
-      errors.durationMinutes = 'Informe uma duração válida em minutos';
+    const durationError = getExamDurationValidationError(durationMinutes);
+    if (durationError) {
+      errors.durationMinutes = durationError;
     }
 
-    if (!Number.isInteger(priceCents) || priceCents < 0) {
-      errors.priceCents = 'Informe um valor em centavos igual ou maior que zero';
+    const priceError = getExamPriceValidationError(priceCents);
+    if (priceError) {
+      errors.priceCents = priceError;
     }
 
     const availabilityErrors = validateExamAvailability(

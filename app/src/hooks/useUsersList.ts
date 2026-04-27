@@ -16,6 +16,11 @@ import {
 import type { PaginatedResult, SortOrder } from '@/types/api';
 import type { User, UpdateUserPayload, UserListSortBy } from '@/types/user';
 import type { UserProfile } from '@/types/auth';
+import {
+  getUserEmailValidationError,
+  getUserFullNameValidationError,
+  normalizeEmail,
+} from '@/utils/form-validation';
 import { getRequestErrorMessage } from '@/utils/request';
 
 const PAGE_SIZE = 8;
@@ -153,16 +158,18 @@ export const useUsersList = () => {
       return;
     }
 
-    if (editForm.fullName.trim().length < 3) {
-      publish('error', 'Informe o nome com ao menos 3 caracteres.');
+    const fullNameError = getUserFullNameValidationError(editForm.fullName);
+    if (fullNameError) {
+      publish('error', `${fullNameError}.`);
       return;
     }
 
-    const normalizedEmail = editForm.email.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      publish('error', 'Informe um e-mail válido.');
+    const emailError = getUserEmailValidationError(editForm.email);
+    if (emailError) {
+      publish('error', `${emailError}.`);
       return;
     }
+    const normalizedEmail = normalizeEmail(editForm.email);
 
     const payload: UpdateUserPayload = {
       fullName: editForm.fullName.trim(),

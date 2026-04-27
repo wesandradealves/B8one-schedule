@@ -70,7 +70,7 @@ const CalendarFrame = styled.div.attrs({
   }
 
   .ep-slot-available {
-    background-color: rgba(16, 185, 129, 0.2) !important;
+    background-color: var(--color-slot-available-bg) !important;
     cursor: pointer !important;
   }
 
@@ -81,28 +81,28 @@ const CalendarFrame = styled.div.attrs({
     right: 4px;
     font-size: 9px;
     font-weight: 700;
-    color: rgba(5, 150, 105, 0.85);
+    color: var(--color-slot-available-fg);
     pointer-events: none;
   }
 
   .ep-slot-available:hover {
-    background-color: rgba(16, 185, 129, 0.3) !important;
-    box-shadow: inset 0 0 0 1px rgba(5, 150, 105, 0.35);
+    background-color: var(--color-slot-available-bg-hover) !important;
+    box-shadow: inset 0 0 0 1px var(--color-slot-available-outline);
   }
 
   .ep-slot-selected {
-    background-color: rgba(16, 185, 129, 0.4) !important;
-    box-shadow: inset 0 0 0 2px rgba(5, 150, 105, 0.45);
+    background-color: var(--color-slot-available-bg-selected) !important;
+    box-shadow: inset 0 0 0 2px var(--color-slot-available-outline);
   }
 
   .ep-slot-busy {
-    background-color: rgba(148, 163, 184, 0.26) !important;
+    background-color: var(--color-slot-busy-bg) !important;
     background-image: repeating-linear-gradient(
       45deg,
-      rgba(148, 163, 184, 0.16),
-      rgba(148, 163, 184, 0.16) 6px,
-      rgba(148, 163, 184, 0.05) 6px,
-      rgba(148, 163, 184, 0.05) 12px
+      var(--color-slot-busy-stripe-strong),
+      var(--color-slot-busy-stripe-strong) 6px,
+      var(--color-slot-busy-stripe-soft) 6px,
+      var(--color-slot-busy-stripe-soft) 12px
     );
     cursor: not-allowed !important;
   }
@@ -114,12 +114,12 @@ const CalendarFrame = styled.div.attrs({
     right: 4px;
     font-size: 9px;
     font-weight: 700;
-    color: rgba(71, 85, 105, 0.9);
+    color: var(--color-slot-busy-fg);
     pointer-events: none;
   }
 
   .ep-slot-unavailable {
-    background-color: rgba(148, 163, 184, 0.14) !important;
+    background-color: var(--color-slot-unavailable-bg) !important;
     cursor: not-allowed !important;
   }
 
@@ -130,22 +130,22 @@ const CalendarFrame = styled.div.attrs({
     right: 4px;
     font-size: 9px;
     font-weight: 700;
-    color: rgba(100, 116, 139, 0.85);
+    color: var(--color-slot-unavailable-fg);
     pointer-events: none;
   }
 
   .ep-month-day-available {
-    background: rgba(16, 185, 129, 0.18);
+    background: var(--color-slot-available-bg);
     cursor: pointer;
   }
 
   .ep-month-day-busy {
-    background: rgba(148, 163, 184, 0.26);
+    background: var(--color-slot-busy-bg);
     cursor: not-allowed;
   }
 
   .ep-month-day-unavailable {
-    background: rgba(148, 163, 184, 0.14);
+    background: var(--color-slot-unavailable-bg);
     cursor: not-allowed;
   }
 
@@ -164,20 +164,20 @@ const CalendarFrame = styled.div.attrs({
 
   .ep-month-day-available::after {
     content: 'LIVRE';
-    background: rgba(16, 185, 129, 0.2);
-    color: rgba(5, 150, 105, 0.95);
+    background: var(--color-slot-available-bg);
+    color: var(--color-slot-available-fg);
   }
 
   .ep-month-day-busy::after {
     content: 'RESERVADO';
-    background: rgba(148, 163, 184, 0.34);
-    color: rgba(51, 65, 85, 0.95);
+    background: var(--color-slot-busy-bg);
+    color: var(--color-slot-busy-fg);
   }
 
   .ep-month-day-unavailable::after {
     content: 'INDISP.';
-    background: rgba(148, 163, 184, 0.2);
-    color: rgba(100, 116, 139, 0.95);
+    background: var(--color-slot-unavailable-bg);
+    color: var(--color-slot-unavailable-fg);
   }
 
   .ep-month-date-header {
@@ -200,24 +200,24 @@ const CalendarFrame = styled.div.attrs({
   }
 
   .ep-month-date-button:hover {
-    background: rgba(37, 99, 235, 0.12);
+    background: var(--color-calendar-focus-hover);
   }
 
   .ep-month-date-button:focus-visible {
-    outline: 2px solid rgba(37, 99, 235, 0.5);
+    outline: 2px solid var(--color-calendar-focus-ring);
     outline-offset: 1px;
   }
 
   .ep-month-date-button-available {
-    color: rgba(5, 150, 105, 0.95);
+    color: var(--color-slot-available-fg);
   }
 
   .ep-month-date-button-busy {
-    color: rgba(71, 85, 105, 0.95);
+    color: var(--color-slot-busy-fg);
   }
 
   .ep-month-date-button-unavailable {
-    color: rgba(100, 116, 139, 0.95);
+    color: var(--color-slot-unavailable-fg);
   }
 `;
 
@@ -227,23 +227,35 @@ const SummaryRow = styled.div.attrs({
   color: var(--color-text-secondary);
 `;
 
-const LegendBadge = styled.span.attrs<{ $status: AppointmentStatus }>(({ $status }) => ({
-  className:
-    'inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ' +
-    ($status === 'PENDING'
-      ? 'bg-amber-100 text-amber-700'
+const LegendBadge = styled.span.attrs({
+  className: 'inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold',
+})<{ $status: AppointmentStatus }>`
+  background: ${({ $status }) =>
+    $status === 'PENDING'
+      ? 'var(--color-status-pending-bg)'
       : $status === 'SCHEDULED'
-        ? 'bg-sky-100 text-sky-700'
-        : 'bg-slate-200 text-slate-700'),
-}))<{ $status: AppointmentStatus }>``;
+        ? 'var(--color-status-scheduled-bg)'
+        : 'var(--color-status-cancelled-bg)'};
+  color: ${({ $status }) =>
+    $status === 'PENDING'
+      ? 'var(--color-status-pending-fg)'
+      : $status === 'SCHEDULED'
+        ? 'var(--color-status-scheduled-fg)'
+        : 'var(--color-status-cancelled-fg)'};
+`;
 
-const SlotLegendBadge = styled.span.attrs<{ $kind: 'available' | 'blocked' }>(({ $kind }) => ({
-  className:
-    'inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ' +
-    ($kind === 'available'
-      ? 'bg-emerald-100 text-emerald-700'
-      : 'bg-slate-200 text-slate-700'),
-}))<{ $kind: 'available' | 'blocked' }>``;
+const SlotLegendBadge = styled.span.attrs({
+  className: 'inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold',
+})<{ $kind: 'available' | 'blocked' }>`
+  background: ${({ $kind }) =>
+    $kind === 'available'
+      ? 'var(--color-slot-available-bg)'
+      : 'var(--color-slot-unavailable-bg)'};
+  color: ${({ $kind }) =>
+    $kind === 'available'
+      ? 'var(--color-slot-available-fg)'
+      : 'var(--color-slot-unavailable-fg)'};
+`;
 
 const EmptyState = styled.p.attrs({
   className: 'mt-6 rounded-2xl border px-4 py-8 text-center text-sm',

@@ -14,6 +14,11 @@ import {
 } from '@/services/exams.service';
 import type { PaginatedResult, SortOrder } from '@/types/api';
 import type { Exam, ExamListSortBy } from '@/types/exam';
+import {
+  getExamDurationValidationError,
+  getExamNameValidationError,
+  getExamPriceValidationError,
+} from '@/utils/form-validation';
 import { getRequestErrorMessage } from '@/utils/request';
 
 const PAGE_SIZE = 8;
@@ -143,18 +148,21 @@ export const useExamsList = () => {
     const durationMinutes = Number(editForm.durationMinutes);
     const priceCents = Number(editForm.priceCents);
 
-    if (editForm.name.trim().length < 2) {
-      publish('error', 'Informe o nome do exame com ao menos 2 caracteres.');
+    const nameError = getExamNameValidationError(editForm.name);
+    if (nameError) {
+      publish('error', `${nameError}.`);
       return;
     }
 
-    if (!Number.isInteger(durationMinutes) || durationMinutes <= 0) {
-      publish('error', 'Informe uma duração válida em minutos.');
+    const durationError = getExamDurationValidationError(durationMinutes);
+    if (durationError) {
+      publish('error', `${durationError}.`);
       return;
     }
 
-    if (!Number.isInteger(priceCents) || priceCents < 0) {
-      publish('error', 'Informe um valor em centavos igual ou maior que zero.');
+    const priceError = getExamPriceValidationError(priceCents);
+    if (priceError) {
+      publish('error', `${priceError}.`);
       return;
     }
 

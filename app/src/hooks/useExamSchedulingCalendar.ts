@@ -505,18 +505,18 @@ export const useExamSchedulingCalendar = ({
     if (event.status === 'PENDING') {
       return {
         style: {
-          background: 'rgba(245, 158, 11, 0.18)',
-          borderColor: 'rgba(245, 158, 11, 0.45)',
-          color: '#92400e',
+          background: 'var(--color-status-pending-bg)',
+          borderColor: 'var(--color-status-pending-border)',
+          color: 'var(--color-status-pending-fg)',
         },
       };
     }
 
     return {
       style: {
-        background: 'rgba(37, 99, 235, 0.16)',
-        borderColor: 'rgba(37, 99, 235, 0.45)',
-        color: '#1e40af',
+        background: 'var(--color-status-scheduled-bg)',
+        borderColor: 'var(--color-status-scheduled-border)',
+        color: 'var(--color-status-scheduled-fg)',
       },
     };
   }, []);
